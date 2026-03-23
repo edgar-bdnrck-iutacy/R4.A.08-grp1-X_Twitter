@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Mini Twitter</h1>
+
+<input id="tweet">
+<button onclick="sendTweet()">Envoyer</button>
+
+<ul id="list"></ul>
+
+<script>
+
+async function loadTweets() {
+
+const res = await fetch("http://localhost:3000/tweets")
+const tweets = await res.json()
+
+document.getElementById("list").innerHTML =
+tweets.map(t => "<li>"+t.content+"</li>").join("")
+
+}
+
+async function sendTweet() {
+
+const content =
+document.getElementById("tweet").value
+
+await fetch("http://localhost:3000/tweets", {
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body: JSON.stringify({content})
+
+})
+
+loadTweets()
+
+}
+
+loadTweets()
+
+</script>
+
+</body>
+</html>
