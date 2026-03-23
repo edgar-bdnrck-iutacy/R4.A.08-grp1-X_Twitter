@@ -1,24 +1,11 @@
-const express = require("express");
-const cors = require("cors");
-const postsRouter = require("./routes/posts");
+const { Pool } = require('pg');
 
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-app.get("/", (req, res) => {
-  res.json({
-    message: "Twitter/X backend is running"
-  });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
 });
 
-app.use("/posts", postsRouter);
+pool.connect()
+  .then(() => console.log("Connexion à la base de données PostgreSQL réussie."))
+  .catch(err => console.error("Erreur de connexion à la base de données", err));
 
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Route not found"
-  });
-});
-
-module.exports = app;
+module.exports = pool;

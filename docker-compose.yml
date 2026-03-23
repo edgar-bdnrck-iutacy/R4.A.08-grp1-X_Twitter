@@ -1,15 +1,16 @@
 services:
   db:
-    image: mariadb
+    image: postgres:15
     container_name: twitter-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: twitter
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: twitter
+    ports:
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   backend:
@@ -20,6 +21,12 @@ services:
       - db
     ports:
       - "3001:3000"
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/twitter
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
 
   frontend:
     build: ./frontend
@@ -29,6 +36,8 @@ services:
       - backend
     ports:
       - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
 
 volumes:
   db_data:

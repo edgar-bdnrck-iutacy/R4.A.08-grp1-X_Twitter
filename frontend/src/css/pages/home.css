@@ -1,0 +1,65 @@
+.home-feed {
+    width: 100%;
+    max-width: 600px;
+    background-color: var(--bg-color);
+    min-height: 100vh;
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+}
+
+.feed-header {
+    position: sticky;
+    top: 0;
+    background-color: rgba(0, 0, 0, 0.65); /* Effet de transparence sombre */
+    backdrop-filter: blur(12px);
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    z-index: 10;
+}
+
+.compose-tweet {
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.compose-tweet textarea {
+    background: transparent;
+    color: var(--text-main);
+    border: none;
+    font-size: 1.2rem;
+    resize: none;
+    outline: none;
+    padding: 10px 0;
+}
+
+.compose-tweet {
+    display: flex;
+    flex-direction: column; /* Pour que le bouton soit sous le texte */
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#btn-post {
+    align-self: flex-end; /* C'est ça qui l'empêche de prendre toute la largeur ! */
+    background-color: var(--twitter-blue); /* #1d9bf0 */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin-top: 10px;
+    border-radius: 9999px; /* Le look "pilule" */
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#btn-post:hover {
+    background-color: #1a8cd8; /* Un bleu un peu plus foncé au survol */
+}
+
+#btn-post:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

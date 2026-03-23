@@ -1,7 +1,8 @@
-const app = require("./src/app");
+const app = require('./src/app');
+const db = require('./src/db'); // Initialise la connexion à la base
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Backend running on http://0.0.0.0:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Le serveur backend est démarré et écoute sur le port ${PORT}.`);
 });

@@ -9,10 +9,44 @@
 <body>
     <div class="app-layout">
         <nav id="sidebar">
+            <div class="sidebar-logo">X / Twitter</div>
+            
             <ul>
-                <li><a href="#home">Accueil</a></li>
-                <li><a href="#profile">Profil</a></li>
+                <li>
+                    <a href="#home" class="active">
+                         Accueil
+                    </a>
+                </li>
+                <li>
+                    <a href="#profile">
+                        Profil
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                         Notifications
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        Recherche
+                    </a>
+                </li>
             </ul>
+        
+            <div class="sidebar-auth">
+                <div class="current-user-info" id="current-user-info">
+                 
+                    <div class="current-user-details">
+                        <strong id="current-user-name" class="current-user-name">Chargement...</strong>
+                        <span id="current-user-handle" class="current-user-handle">@...</span>
+                    </div>
+                </div>
+        
+                <button id="logout-btn">
+                    Se déconnecter
+                </button>
+            </div>
         </nav>
         
         <main id="app-container"></main>
@@ -23,5 +57,7 @@
     </div>
 
     <script type="module" src="src/js/router.js"></script>
+
+
 </body>
 </html>

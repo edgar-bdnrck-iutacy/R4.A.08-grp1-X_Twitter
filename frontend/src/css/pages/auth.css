@@ -1,0 +1,65 @@
+.auth-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--bg-color);
+}
+
+.auth-box {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+}
+
+.auth-box h2 {
+    margin-bottom: 25px;
+    font-weight: 800;
+    font-size: 1.8rem;
+    color: var(--text-main);
+}
+
+.auth-box input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-main);
+    font-size: 1.1rem;
+    transition: border-color 0.2s;
+}
+
+.auth-box input:focus {
+    border-color: var(--twitter-blue);
+    outline: none;
+}
+
+.auth-box button {
+    width: 100%;
+    padding: 15px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.auth-switch {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+#toggle-auth {
+    color: var(--twitter-blue);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#toggle-auth:hover {
+    text-decoration: underline;
+}

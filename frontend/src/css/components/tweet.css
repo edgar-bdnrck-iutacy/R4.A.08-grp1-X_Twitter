@@ -1,58 +1,87 @@
-.compose-tweet {
-    padding: 20px;
-    border-bottom: 1px solid #2f3336;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
-.compose-tweet textarea {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 1.2rem;
-    resize: none;
-    min-height: 60px;
-    outline: none;
-    margin-bottom: 15px;
-}
-
-#btn-post {
-    background-color: #1d9bf0;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 25px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-#btn-post:hover {
-    background-color: #1a8cd8;
-}
-
 .tweet-card {
-    padding: 15px 20px;
-    border-bottom: 1px solid #2f3336;
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    transition: background-color 0.2s ease;
     cursor: pointer;
-    transition: background-color 0.2s;
 }
 
 .tweet-card:hover {
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: var(--hover-color);
 }
 
-.tweet-card strong {
-    font-size: 1rem;
+/* Colonne Avatar */
+.tweet-avatar-col {
+    flex-shrink: 0;
 }
 
-.tweet-card span, .tweet-card small {
-    color: #71767b;
+.tweet-avatar-mini {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #333; /* Fallback couleur */
 }
 
-.tweet-card p {
-    margin: 10px 0;
-    line-height: 1.5;
+/* Colonne Contenu */
+.tweet-content-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tweet-header {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.author-name {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.author-name:hover {
+    text-decoration: underline;
+}
+
+.handle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.tweet-content {
+    color: var(--text-main);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Footer (Likes & Comms) */
+.tweet-footer {
+    display: flex;
+    gap: 40px;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.btn-like {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: transform 0.1s ease, color 0.2s ease;
+}
+
+.btn-like:hover {
+    color: #f91880;
+}
+
+.btn-like.is-liked {
+    color: #f91880;
 }
