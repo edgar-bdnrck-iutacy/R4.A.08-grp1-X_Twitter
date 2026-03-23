@@ -20,79 +20,63 @@ async function getAllPosts() {
 
   return rows;
 }
-async function createPost(author, content) {
-  // 1. Récupération de l'identifiant de l'utilisateur
-  const userResult = await db.query(
-    `SELECT id_utilisateur FROM utilisateur WHERE username_utilisateur = $1`,
-    [author]
-  );
 
-  if (userResult.rows.length === 0) {
-    throw new Error("Auteur introuvable dans la base de données.");
-  }
+// Dans backend/src/services/postsService.js
 
-  const userId = userResult.rows[0].id_utilisateur;
-
-  // 2. Insertion du tweet
+async function createPost(userId, content) {
+  // L'identifiant est déjà connu, nous procédons directement à l'insertion
   const insertResult = await db.query(
-    `INSERT INTO tweet (id_utilisateur, description_tweet) VALUES ($1, $2) RETURNING id_tweet`,
-    [userId, content]
+      `INSERT INTO tweet (id_utilisateur, description_tweet) VALUES ($1, $2) RETURNING id_tweet`,
+      [userId, content]
   );
 
   const newTweetId = insertResult.rows[0].id_tweet;
 
-  // --- NOUVEAUTÉ : GESTION DES HASHTAGS ---
-  // On repère tous les mots qui commencent par # (ex: #Innovation)
+  // --- GESTION DES HASHTAGS (Reste inchangée) ---
   const hashtags = content.match(/#[a-zA-Z0-9_]+/g);
-
   if (hashtags) {
-    for (let tag of hashtags) {
-      const nomHashtag = tag.substring(1); // On retire le '#' pour la base de données
+      for (let tag of hashtags) {
+          const nomHashtag = tag.substring(1); 
+          let tagResult = await db.query(
+              `SELECT id_hashtag FROM hashtag WHERE nom_hashtag = $1`,
+              [nomHashtag]
+          );
 
-      // On vérifie si ce hashtag existe déjà dans la table
-      let tagResult = await db.query(
-        `SELECT id_hashtag FROM hashtag WHERE nom_hashtag = $1`,
-        [nomHashtag]
-      );
+          let tagId;
+          if (tagResult.rows.length === 0) {
+              const newTag = await db.query(
+                  `INSERT INTO hashtag (nom_hashtag) VALUES ($1) RETURNING id_hashtag`,
+                  [nomHashtag]
+              );
+              tagId = newTag.rows[0].id_hashtag;
+          } else {
+              tagId = tagResult.rows[0].id_hashtag;
+          }
 
-      let tagId;
-      if (tagResult.rows.length === 0) {
-        // S'il est tout neuf, on le crée
-        const newTag = await db.query(
-          `INSERT INTO hashtag (nom_hashtag) VALUES ($1) RETURNING id_hashtag`,
-          [nomHashtag]
-        );
-        tagId = newTag.rows[0].id_hashtag;
-      } else {
-        // S'il existe déjà, on récupère juste son ID
-        tagId = tagResult.rows[0].id_hashtag;
+          await db.query(
+              `INSERT INTO contient (id_tweet, id_hashtag) VALUES ($1, $2)`,
+              [newTweetId, tagId]
+          );
       }
-
-      // On crée le lien entre le tweet et le hashtag dans la table 'contient'
-      await db.query(
-        `INSERT INTO contient (id_tweet, id_hashtag) VALUES ($1, $2)`,
-        [newTweetId, tagId]
-      );
-    }
   }
   // ----------------------------------------
 
-  // 3. Récupération des données formatées (avec photo et nom complet)
+  // Récupération des données formatées pour l'affichage immédiat
   const { rows } = await db.query(
-    `
-    SELECT
-      t.id_tweet AS id,
-      u.username_utilisateur AS author,
-      u.nom_utilisateur AS author_name,
-      u.photo_profil_utilisateur AS author_photo,
-      t.description_tweet AS content,
-      t.nb_likes_tweet AS likes,
-      t.date_publication_tweet AS created_at
-    FROM tweet t
-    JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
-    WHERE t.id_tweet = $1
-    `,
-    [newTweetId]
+      `
+      SELECT
+          t.id_tweet AS id,
+          u.username_utilisateur AS author,
+          u.nom_utilisateur AS author_name,
+          u.photo_profil_utilisateur AS author_photo,
+          t.description_tweet AS content,
+          t.nb_likes_tweet AS likes,
+          t.date_publication_tweet AS created_at
+      FROM tweet t
+      JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+      WHERE t.id_tweet = $1
+      `,
+      [newTweetId]
   );
 
   return rows[0];

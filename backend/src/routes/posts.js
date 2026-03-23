@@ -31,31 +31,39 @@ router.get("/user/:id", async (req, res) => {
 });
 
 // 3. Créer un nouveau post
+
 router.post("/", async (req, res) => {
   try {
-    const author = typeof req.body.author === "string" ? req.body.author.trim() : "";
-    const content = typeof req.body.content === "string" ? req.body.content.trim() : "";
+      const { userId, content } = req.body;
 
-    // Validations
-    if (!author || !content) {
-      return res.status(400).json({ error: "Author and Content are required" });
-    }
-    if (author.length > 50 || content.length > 280) {
-      return res.status(400).json({ error: "Limits exceeded (Author 50, Content 280)" });
-    }
+      // Validations strictes
+      if (!userId || !content || typeof content !== "string") {
+          return res.status(400).json({ error: "L'identifiant utilisateur et le contenu sont requis." });
+      }
 
-    const newPost = await createPost(author, content);
-    return res.status(201).json(newPost);
+      const cleanContent = content.trim();
+      if (cleanContent.length === 0 || cleanContent.length > 280) {
+          return res.status(400).json({ error: "Le contenu doit être compris entre 1 et 280 caractères." });
+      }
+
+      // Appel au service avec le userId
+      const newPost = await createPost(userId, cleanContent);
+      return res.status(201).json(newPost);
   } catch (error) {
-    console.error("POST /posts error:", error);
-    return res.status(500).json({ error: "Unable to create post" });
+      console.error("POST /posts error:", error);
+      return res.status(500).json({ error: "Erreur lors de la création du post" });
   }
 });
+
 
 router.post("/:id/like", async (req, res) => {
   try {
     const postId = req.params.id;
-    const userId = 1; // On garde l'ID 1 (jdupont) pour le test
+    const { userId } = req.body; 
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
 
     const result = await toggleLike(postId, userId);
     res.json(result);
@@ -64,7 +72,6 @@ router.post("/:id/like", async (req, res) => {
     res.status(500).json({ error: "Erreur toggle like" });
   }
 });
-
 
 router.get('/trends', async (req, res) => {
   try {
@@ -75,5 +82,7 @@ router.get('/trends', async (req, res) => {
     res.status(500).json({ error: "Erreur lors de la récupération des tendances" });
   }
 });
+
+
 
 module.exports = router;
