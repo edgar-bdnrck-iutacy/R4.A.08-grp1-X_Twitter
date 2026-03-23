@@ -1,50 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clone X</title>
+    <link rel="stylesheet" href="src/css/style.css">
+</head>
 <body>
+    <div class="app-layout">
+        <nav id="sidebar">
+            <ul>
+                <li><a href="#home">Accueil</a></li>
+                <li><a href="#profile">Profil</a></li>
+            </ul>
+        </nav>
 
-<h1>Mini Twitter</h1>
+        <main id="app-container"></main>
 
-<input id="tweet">
-<button onclick="sendTweet()">Envoyer</button>
+        <aside id="trending">
+            <h3>Tendances</h3>
+            <p>#Docker</p>
+            <p>#NodeJS</p>
+            <p>#MariaDB</p>
+            <p>#Virtualisation</p>
+        </aside>
+    </div>
 
-<ul id="list"></ul>
-
-<script>
-
-async function loadTweets() {
-
-const res = await fetch("http://localhost:3000/tweets")
-const tweets = await res.json()
-
-document.getElementById("list").innerHTML =
-tweets.map(t => "<li>"+t.content+"</li>").join("")
-
-}
-
-async function sendTweet() {
-
-const content =
-document.getElementById("tweet").value
-
-await fetch("http://localhost:3000/tweets", {
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body: JSON.stringify({content})
-
-})
-
-loadTweets()
-
-}
-
-loadTweets()
-
-</script>
-
+    <script type="module" src="src/js/router.js"></script>
 </body>
 </html>

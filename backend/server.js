@@ -1,30 +1,7 @@
-const express = require("express");
-const mysql = require("mysql2");
-const app = express();
+const app = require("./src/app");
 
-app.use(express.json());
+const PORT = 3000;
 
-const db = mysql.createConnection({
-  host: "db",
-  user: "user",
-  password: "password",
-  database: "twitter"
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Backend running on http://0.0.0.0:${PORT}`);
 });
-
-app.get("/tweets", (req, res) => {
-  db.query("SELECT * FROM tweets", (err, result) => {
-    res.json(result);
-  });
-});
-
-app.post("/tweets", (req, res) => {
-  const { content } = req.body;
-
-  db.query(
-    "INSERT INTO tweets(content) VALUES (?)",
-    [content],
-    () => res.send("tweet ajouté")
-  );
-});
-
-app.listen(3000, "0.0.0.0");
