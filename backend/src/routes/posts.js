@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
+// On importe la nouvelle fonction en haut du fichier
 const { 
-  getAllPosts, 
-  createPost, 
-  toggleLike,
-  getPostsByUserId ,
-  getTrendingHashtags
+  getAllPosts, createPost, toggleLike, getPostsByUserId, getTrendingHashtags, getCommentsByPostId , addComment
 } = require('../services/postsService');
+
 
 // 1. Récupérer tous les posts (Flux général)
 router.get("/", async (req, res) => {
@@ -18,6 +16,9 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Unable to fetch posts" });
   }
 });
+
+
+
 
 // 2. Récupérer les posts d'un utilisateur précis (Profil)
 router.get("/user/:id", async (req, res) => {
@@ -83,6 +84,30 @@ router.get('/trends', async (req, res) => {
   }
 });
 
+// Nouvelle route GET pour les commentaires
+router.get('/:id/comments', async (req, res) => {
+  try {
+      const postId = req.params.id;
+      const comments = await getCommentsByPostId(postId);
+      res.json(comments);
+  } catch (error) {
+      console.error("Erreur GET comments:", error);
+      res.status(500).json({ error: "Erreur lors de la récupération des commentaires" });
+  }
+});
+
+
+router.post('/:id/comments', async (req, res) => {
+  try {
+      const { userId, content } = req.body;
+      if (!userId || !content) return res.status(400).json({ error: "Données requises" });
+      
+      await addComment(req.params.id, userId, content);
+      res.status(201).json({ success: true });
+  } catch (error) {
+      res.status(500).json({ error: "Erreur lors de la création du commentaire" });
+  }
+});
 
 
 module.exports = router;

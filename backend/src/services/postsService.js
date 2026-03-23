@@ -12,6 +12,7 @@ async function getAllPosts() {
       u.photo_profil_utilisateur AS author_photo,    -- URL de la miniature
       t.description_tweet AS content,
       t.nb_likes_tweet AS likes,
+      (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,          
       t.date_publication_tweet AS created_at
     FROM tweet t
     JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
@@ -71,6 +72,7 @@ async function createPost(userId, content) {
           u.photo_profil_utilisateur AS author_photo,
           t.description_tweet AS content,
           t.nb_likes_tweet AS likes,
+          (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,      -- Ajout de la colonne des commentaires
           t.date_publication_tweet AS created_at
       FROM tweet t
       JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
@@ -125,6 +127,7 @@ async function getPostsByUserId(userId) {
       u.photo_profil_utilisateur AS author_photo,
       t.description_tweet AS content, 
       t.nb_likes_tweet AS likes, 
+      (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,           
       t.date_publication_tweet AS created_at
     FROM tweet t
     JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
@@ -146,10 +149,39 @@ async function getTrendingHashtags() {
   return rows;
 }
 
+/**
+ * Récupère les commentaires liés à un tweet spécifique
+ */
+async function getCommentsByPostId(postId) {
+  const { rows } = await db.query(`
+      SELECT 
+          c.id_commentaire AS id,
+          u.username_utilisateur AS author,
+          u.nom_utilisateur AS author_name,
+          u.photo_profil_utilisateur AS author_photo,
+          c.description_commentaire AS content,
+          c.date_publication_commentaire AS created_at
+      FROM commentaires c
+      JOIN utilisateur u ON c.id_utilisateur = u.id_utilisateur
+      WHERE c.id_tweet = $1
+      ORDER BY c.date_publication_commentaire ASC;
+  `, [postId]);
+  return rows;
+}
+
+async function addComment(postId, userId, content) {
+  await db.query(
+      `INSERT INTO commentaires (id_tweet, id_utilisateur, description_commentaire) VALUES ($1, $2, $3)`,
+      [postId, userId, content]
+  );
+}
+
 module.exports = {
   getAllPosts,
   createPost,
   toggleLike,
   getPostsByUserId,
-  getTrendingHashtags
+  getTrendingHashtags,
+  getCommentsByPostId,
+  addComment
 };
