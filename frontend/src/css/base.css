@@ -25,8 +25,7 @@ body {
     min-height: 100vh;
 }
 
-.feed-header,
-.profile-header-nav {
+.feed-header, .profile-header-nav {
     padding: 15px 20px;
     border-bottom: 1px solid #2f3336;
     background-color: rgba(0, 0, 0, 0.65);
@@ -34,35 +33,4 @@ body {
     position: sticky;
     top: 0;
     z-index: 10;
-}
-
-.error-message,
-.empty-message {
-    padding: 20px;
-    color: #71767b;
-}
-
-@media (max-width: 1100px) {
-    .app-layout {
-        grid-template-columns: 90px minmax(auto, 1fr);
-    }
-
-    #trending {
-        display: none;
-    }
-}
-
-@media (max-width: 700px) {
-    .app-layout {
-        grid-template-columns: 1fr;
-    }
-
-    #sidebar {
-        display: none;
-    }
-
-    #app-container {
-        border-left: none;
-        border-right: none;
-    }
 }
