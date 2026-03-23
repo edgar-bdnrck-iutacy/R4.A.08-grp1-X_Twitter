@@ -1,43 +1,19 @@
-const API_BASE_URL = "http://localhost:3001";
-
 export const api = {
     async getFeed() {
-        const response = await fetch(`${API_BASE_URL}/posts`);
-
-        if (!response.ok) {
-            throw new Error("Impossible de récupérer les posts");
-        }
-
-        return response.json();
+        // Simulation d'une requête réseau
+        return [
+            { id: 1, author: "Alice", handle: "@alice", content: "Premier post sur ce nouveau réseau !", likes: 12 },
+            { id: 2, author: "Bob", handle: "@bob", content: "L'architecture frontend se met en place.", likes: 5 }
+        ];
     },
-
-    async createPost(author, content) {
-        const response = await fetch(`${API_BASE_URL}/posts`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ author, content })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Impossible de créer le post");
-        }
-
-        return response.json();
-    },
-
-    async likePost(id) {
-        const response = await fetch(`${API_BASE_URL}/posts/${id}/like`, {
-            method: "POST"
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Impossible de liker le post");
-        }
-
-        return response.json();
+    
+    async getUserProfile(userId) {
+        // Simulation de récupération de profil
+        return {
+            id: userId,
+            name: "ian b",
+            handle: "@ianB",
+            bio: "Développeur passionné par la création d'applications web."
+        };
     }
 };
