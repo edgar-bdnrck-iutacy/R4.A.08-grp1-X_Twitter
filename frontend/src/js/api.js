@@ -21,10 +21,7 @@ export const api = {
         }
     },
 
-
-
     async createPost(content) {
-      
         const userId = this.getCurrentUserId(); 
 
         try {
@@ -71,7 +68,7 @@ export const api = {
     },
 
     async likePost(postId) {
-        const userId = this.getCurrentUserId(); // Récupère l'ID du localStorage côté FRONT
+        const userId = this.getCurrentUserId(); 
         try {
             const response = await fetch(`${API_BASE_URL}/posts/${postId}/like`, {
                 method: 'POST',
@@ -97,7 +94,6 @@ export const api = {
         }
     },
 
-
     async getComments(postId) {
         try {
             const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`);
@@ -122,11 +118,86 @@ export const api = {
             console.error("Erreur addComment:", error);
             return false;
         }
-    }
+    },
+
+    async updateUserProfile(userId, updatedData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
+            });
+
+            if (response.ok) {
+                return await response.json();
+            } else {
+                return null;
+            }
+        } catch (err) {
+            console.error(err);
+            return null;
+        }
+    },
     
+    async getUserLikes(userId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}/likes`);
+            const posts = await response.json();
+            return posts.map(p => ({ ...p, handle: `@${p.author}` }));
+        } catch (error) { return []; }
+    },
+
+    async getUserReplies(userId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}/replies`);
+            const replies = await response.json();
+            return replies.map(p => ({ ...p, handle: `@${p.author}` }));
+        } catch (error) { return []; }
+    },
+
+    // Récupérer le nombre d'abonnés/abonnements
+    async getFollowStats(userId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${userId}/stats`);
+            if (!res.ok) throw new Error("Erreur stats");
+            return await res.json();
+        } catch (e) { 
+            return { followers: 0, following: 0 }; 
+        }
+    },
+
+    // S'abonner ou se désabonner
+    async toggleFollow(targetUserId) {
+        const userId = this.getCurrentUserId();
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${targetUserId}/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            return await res.json();
+        } catch (e) { 
+            return null; 
+        }
+    },
+
+
+    async searchUsers(query) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error("Erreur recherche");
+            return await response.json();
+        } catch (error) {
+            console.error("Erreur searchUsers:", error);
+            return [];
+        }
+    },
+    async getFollowStatus(myId, targetId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${myId}/is-following/${targetId}`);
+            return await res.json();
+        } catch (e) {
+            return { isFollowing: false };
+        }
+    }
 };
-
-
-
-
-

@@ -7,9 +7,10 @@ async function getAllPosts() {
   const { rows } = await db.query(`
     SELECT
       t.id_tweet AS id,
+      u.id_utilisateur AS id_utilisateur,             -- AJOUTÉ : ID pour le lien profil
       u.username_utilisateur AS author,
-      u.nom_utilisateur AS author_name,              -- Nom complet (ex: Jean Dupont)
-      u.photo_profil_utilisateur AS author_photo,    -- URL de la miniature
+      u.nom_utilisateur AS author_name,
+      u.photo_profil_utilisateur AS author_photo,
       t.description_tweet AS content,
       t.nb_likes_tweet AS likes,
       (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,          
@@ -22,10 +23,11 @@ async function getAllPosts() {
   return rows;
 }
 
-// Dans backend/src/services/postsService.js
-
+/**
+ * Créer un nouveau post et retourne le tweet formaté
+ */
 async function createPost(userId, content) {
-  // L'identifiant est déjà connu, nous procédons directement à l'insertion
+  // Insertion du tweet
   const insertResult = await db.query(
       `INSERT INTO tweet (id_utilisateur, description_tweet) VALUES ($1, $2) RETURNING id_tweet`,
       [userId, content]
@@ -33,7 +35,7 @@ async function createPost(userId, content) {
 
   const newTweetId = insertResult.rows[0].id_tweet;
 
-  // --- GESTION DES HASHTAGS (Reste inchangée) ---
+  // --- GESTION DES HASHTAGS ---
   const hashtags = content.match(/#[a-zA-Z0-9_]+/g);
   if (hashtags) {
       for (let tag of hashtags) {
@@ -60,19 +62,19 @@ async function createPost(userId, content) {
           );
       }
   }
-  // ----------------------------------------
 
-  // Récupération des données formatées pour l'affichage immédiat
+  // Récupération des données formatées pour le frontend
   const { rows } = await db.query(
       `
       SELECT
           t.id_tweet AS id,
+          u.id_utilisateur AS id_utilisateur,         -- AJOUTÉ
           u.username_utilisateur AS author,
           u.nom_utilisateur AS author_name,
           u.photo_profil_utilisateur AS author_photo,
           t.description_tweet AS content,
           t.nb_likes_tweet AS likes,
-          (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,      -- Ajout de la colonne des commentaires
+          (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
           t.date_publication_tweet AS created_at
       FROM tweet t
       JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
@@ -122,6 +124,7 @@ async function getPostsByUserId(userId) {
   const { rows } = await db.query(`
     SELECT 
       t.id_tweet AS id, 
+      u.id_utilisateur AS id_utilisateur,             -- AJOUTÉ
       u.username_utilisateur AS author,
       u.nom_utilisateur AS author_name,
       u.photo_profil_utilisateur AS author_photo,
@@ -137,6 +140,9 @@ async function getPostsByUserId(userId) {
   return rows;
 }
 
+/**
+ * Récupère les hashtags les plus utilisés
+ */
 async function getTrendingHashtags() {
   const { rows } = await db.query(`
     SELECT h.nom_hashtag AS hashtag, COUNT(c.id_tweet) AS total
@@ -156,6 +162,7 @@ async function getCommentsByPostId(postId) {
   const { rows } = await db.query(`
       SELECT 
           c.id_commentaire AS id,
+          u.id_utilisateur AS id_utilisateur,         -- AJOUTÉ (pour cliquer sur les profils en com)
           u.username_utilisateur AS author,
           u.nom_utilisateur AS author_name,
           u.photo_profil_utilisateur AS author_photo,
@@ -169,6 +176,9 @@ async function getCommentsByPostId(postId) {
   return rows;
 }
 
+/**
+ * Ajoute un commentaire
+ */
 async function addComment(postId, userId, content) {
   await db.query(
       `INSERT INTO commentaires (id_tweet, id_utilisateur, description_commentaire) VALUES ($1, $2, $3)`,

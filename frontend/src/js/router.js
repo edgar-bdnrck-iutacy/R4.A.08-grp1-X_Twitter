@@ -1,8 +1,22 @@
 import { api } from './api.js';
 import { initHome } from './controllers/home.js';
 import { initProfile } from './controllers/profile.js';
+// Ajout du contrôleur pour la recherche
+import { initSearch } from './controllers/search.js'; 
 
 const appContainer = document.getElementById('app-container');
+
+
+
+
+const navProfileLink = document.querySelector('a[href="#profile"]');
+if (navProfileLink) {
+    navProfileLink.addEventListener('click', () => {
+        // ON SUPPRIME la cible pour forcer le chargement de NOTRE profil
+        localStorage.removeItem('viewUserId');
+        console.log("🧹 Navigation: viewUserId supprimé (retour au profil perso)");
+    });
+}
 
 // --- GESTION DE LA DÉCONNEXION ---
 const logoutBtn = document.getElementById('logout-btn');
@@ -33,11 +47,11 @@ async function loadSidebarProfile() {
             const nameElement = document.getElementById('current-user-name');
             const handleElement = document.getElementById('current-user-handle');
 
-            if (nameElement) nameElement.textContent = profileData.name;
-            if (handleElement) handleElement.textContent = profileData.handle;
+            if (nameElement) nameElement.textContent = profileData.name || profileData.nom_utilisateur;
+            if (handleElement) handleElement.textContent = profileData.handle || `@${profileData.username_utilisateur}`;
             if (avatarImg) {
-                avatarImg.src = profileData.photo_profil || 
-                    `https://ui-avatars.com/api/?name=${profileData.name}&background=random&color=fff`;
+                avatarImg.src = profileData.photo_profil || profileData.photo_profil_utilisateur || 
+                    `https://ui-avatars.com/api/?name=${profileData.name || profileData.nom_utilisateur}&background=random&color=fff`;
             }
         }
     } catch (error) {
@@ -54,10 +68,13 @@ async function loadPage(page) {
         const html = await response.text();
         appContainer.innerHTML = html;
 
+        // Branchement des différents contrôleurs selon la page
         if (page === 'home') {
             await initHome();
         } else if (page === 'profile') {
             await initProfile();
+        } else if (page === 'search') {
+            await initSearch(); // Initialisation de la vue recherche
         }
 
         updateActiveLink(page);

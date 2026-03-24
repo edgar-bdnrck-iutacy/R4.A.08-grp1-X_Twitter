@@ -218,7 +218,7 @@ VALUES
 -- 7. Insertion des abonnements
 INSERT INTO abonnements (id_suiveur_utilisateur, id_suivi_utilisateur) 
 VALUES 
-(1, 2), (1, 3), (2, 1), (3, 1),
+(1, 4), (1, 3), (2, 1), (3, 1),
 (4, 5), (5, 4), (6, 7), (7, 6), 
 (8, 4), (8, 5), (9, 10), (10, 9), 
 (11, 10), (10, 11);
