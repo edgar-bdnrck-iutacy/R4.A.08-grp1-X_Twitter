@@ -11,7 +11,12 @@ export async function initProfile() {
     const avatar = document.querySelector('.avatar-placeholder');
     const banner = document.querySelector('.profile-banner');
 
-    const USER_ID = 1; // Toujours Jean Dupont pour le test
+    const USER_ID = localStorage.getItem('userId');
+
+    // Sécurité : Si pas de USER_ID, retour au login
+    if (!USER_ID && window.location.pathname !== '/auth.html') {
+        window.location.href = '/auth.html';
+    }
 
     // 2. Récupération des données du profil via l'API
     const profileData = await api.getUserProfile(USER_ID);

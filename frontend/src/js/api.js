@@ -1,6 +1,10 @@
 const API_BASE_URL = 'http://localhost:3001/api';
 
 export const api = {
+    getCurrentUserId() {
+        return localStorage.getItem('userId') || 1;
+    },
+    
     // 1. Récupérer tous les tweets
     async getFeed() {
         try {
@@ -17,13 +21,17 @@ export const api = {
         }
     },
 
-    // 2. Créer un nouveau tweet
-    async createPost(author, content) {
+
+
+    async createPost(content) {
+      
+        const userId = this.getCurrentUserId(); 
+
         try {
             const response = await fetch(`${API_BASE_URL}/posts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ author, content })
+                body: JSON.stringify({ userId, content }) 
             });
 
             if (!response.ok) {
@@ -63,9 +71,12 @@ export const api = {
     },
 
     async likePost(postId) {
+        const userId = this.getCurrentUserId(); // Récupère l'ID du localStorage côté FRONT
         try {
             const response = await fetch(`${API_BASE_URL}/posts/${postId}/like`, {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
             });
             if (!response.ok) throw new Error("Impossible de liker");
             return await response.json();
@@ -85,6 +96,33 @@ export const api = {
             return [];
         }
     },
+
+
+    async getComments(postId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`);
+            if (!response.ok) throw new Error("Erreur lors de la récupération");
+            return await response.json();
+        } catch (error) {
+            console.error("Erreur getComments:", error);
+            return [];
+        }
+    },
+
+    async addComment(postId, content) {
+        const userId = this.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, content })
+            });
+            return response.ok;
+        } catch (error) {
+            console.error("Erreur addComment:", error);
+            return false;
+        }
+    }
     
 };
 

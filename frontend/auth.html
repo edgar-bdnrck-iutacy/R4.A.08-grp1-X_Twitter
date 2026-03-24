@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - X Clone</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/css/pages/auth.css">
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="logo-wrapper">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="x-logo">
+                <g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g>
+            </svg>
+        </div>
+
+        <div class="auth-box">
+            <h1>Connectez-vous à X</h1>
+            
+            <form id="login-form">
+                <div class="input-group">
+                    <input type="email" id="login-email" placeholder=" " value="jean.dupont@email.com" required>
+                    <label>Email</label>
+                </div>
+                
+                <div class="input-group">
+                    <input type="password" id="login-password" placeholder=" " value="motdepasse123" required>
+                    <label>Mot de passe</label>
+                </div>
+                
+                <button type="submit" class="btn-login">Se connecter</button>
+            </form>
+
+            <p class="auth-switch">Vous n'avez pas de compte ? <span id="toggle-auth">S'inscrire</span></p>
+        </div>
+    </div>
+
+    <script type="module" src="./src/js/controllers/auth.js"></script>
+</body>
+</html>

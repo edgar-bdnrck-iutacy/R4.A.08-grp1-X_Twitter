@@ -4,57 +4,67 @@ import { initProfile } from './controllers/profile.js';
 
 const appContainer = document.getElementById('app-container');
 
+// --- GESTION DE LA DÉCONNEXION ---
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('userId');
+        window.location.href = '/auth.html'; // Redirige vers la page de login
+    });
+}
+
+// --- SYNC DU PROFIL DANS LA SIDEBAR ---
 async function loadSidebarProfile() {
-    const USER_ID = 1; // L'ID de Jean ou John dans ta table
-    const user = await api.getUserProfile(USER_ID);
+    // On récupère l'ID stocké, si rien n'est stocké on redirige
+    const USER_ID = localStorage.getItem('userId');
 
-    if (user) {
-        const avatar = document.getElementById('current-user-avatar');
-        const name = document.getElementById('current-user-name');
-        const handle = document.getElementById('current-user-handle');
-
-        if (name) name.textContent = user.nom_utilisateur; 
-        if (handle) handle.textContent = `@${user.username_utilisateur}`;
-        
-        if (avatar) {
-            // On utilise la colonne photo_profil_utilisateur
-            avatar.src = user.photo_profil_utilisateur || 
-                `https://ui-avatars.com/api/?name=${user.nom_utilisateur}&background=random&color=fff`;
+    if (!USER_ID) {
+        // Si on n'est pas déjà sur auth.html, on y va
+        if (!window.location.pathname.includes('auth.html')) {
+            window.location.href = '/auth.html';
         }
+        return; 
+    }
+    
+    try {
+        const profileData = await api.getUserProfile(USER_ID);
+        if (profileData) {
+            const avatarImg = document.getElementById('current-user-avatar');
+            const nameElement = document.getElementById('current-user-name');
+            const handleElement = document.getElementById('current-user-handle');
+
+            if (nameElement) nameElement.textContent = profileData.name;
+            if (handleElement) handleElement.textContent = profileData.handle;
+            if (avatarImg) {
+                avatarImg.src = profileData.photo_profil || 
+                    `https://ui-avatars.com/api/?name=${profileData.name}&background=random&color=fff`;
+            }
+        }
+    } catch (error) {
+        console.error("Erreur de synchronisation sidebar :", error);
     }
 }
 
+// --- ROUTAGE SPA ---
 async function loadPage(page) {
     try {
-        // On récupère le fichier HTML correspondant dans le dossier /pages
         const response = await fetch(`/pages/${page}.html`);
         if (!response.ok) throw new Error('Page introuvable');
         
         const html = await response.text();
         appContainer.innerHTML = html;
 
-        // On initialise le contrôleur de la page
-        // On utilise 'await' ici pour que la page soit totalement prête
         if (page === 'home') {
             await initHome();
         } else if (page === 'profile') {
             await initProfile();
         }
 
-        // Petit bonus : mettre à jour la classe .active sur les liens de la sidebar
         updateActiveLink(page);
-
     } catch (error) {
-        appContainer.innerHTML = `
-            <div style="padding: 20px; text-align: center;">
-                <h2>Erreur 404</h2>
-                <p>Désolé, la page "${page}" est introuvable.</p>
-                <a href="#home" style="color: var(--twitter-blue);">Retour à l'accueil</a>
-            </div>`;
-        console.error("Erreur de routage:", error);
+        appContainer.innerHTML = `<div style="text-align: center;"><h2>Erreur 404</h2></div>`;
     }
 }
-
 
 function updateActiveLink(page) {
     document.querySelectorAll('#sidebar a').forEach(link => {
@@ -67,9 +77,8 @@ function handleRouting() {
     loadPage(hash);
 }
 
-
+// Initialisation
 loadSidebarProfile();
-
 
 window.addEventListener('hashchange', handleRouting);
 window.addEventListener('DOMContentLoaded', handleRouting);

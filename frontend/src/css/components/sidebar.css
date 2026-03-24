@@ -121,3 +121,25 @@
 #logout-btn:hover {
     background-color: var(--hover-color);
 }
+
+
+.sidebar-logo {
+    padding: 12px;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: flex-start; /* Aligné à gauche comme sur X */
+}
+
+.x-logo-sidebar {
+    width: 30px; /* Taille standard sidebar */
+    fill: #eff3f4; /* Blanc cassé X */
+    transition: background-color 0.2s;
+    padding: 8px;
+    box-sizing: content-box;
+    border-radius: 50%;
+}
+
+/* Petit effet sympa au survol du logo */
+.sidebar-logo:hover .x-logo-sidebar {
+    background-color: rgba(239, 243, 244, 0.1);
+}
