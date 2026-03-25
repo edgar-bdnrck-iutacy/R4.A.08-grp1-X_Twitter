@@ -191,4 +191,40 @@ router.post('/:id/follow', async (req, res) => {
   }
 });
 
+// --- ROUTE : Obtenir la liste des abonnés (Followers) ---
+router.get('/:id/followers', async (req, res) => {
+    try {
+        const query = `
+            SELECT u.id_utilisateur AS id, u.nom_utilisateur AS name, u.username_utilisateur AS handle, u.photo_profil_utilisateur AS photo_profil, u.bio_utilisateur AS bio
+            FROM abonnements a
+            JOIN utilisateur u ON a.id_suiveur_utilisateur = u.id_utilisateur
+            WHERE a.id_suivi_utilisateur = $1
+            ORDER BY a.date_abonnement DESC;
+        `;
+        const result = await db.query(query, [req.params.id]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erreur lors de la récupération des abonnés" });
+    }
+});
+
+// --- ROUTE : Obtenir la liste des abonnements (Following) ---
+router.get('/:id/following', async (req, res) => {
+    try {
+        const query = `
+            SELECT u.id_utilisateur AS id, u.nom_utilisateur AS name, u.username_utilisateur AS handle, u.photo_profil_utilisateur AS photo_profil, u.bio_utilisateur AS bio
+            FROM abonnements a
+            JOIN utilisateur u ON a.id_suivi_utilisateur = u.id_utilisateur
+            WHERE a.id_suiveur_utilisateur = $1
+            ORDER BY a.date_abonnement DESC;
+        `;
+        const result = await db.query(query, [req.params.id]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erreur lors de la récupération des abonnements" });
+    }
+});
+
 module.exports = router;

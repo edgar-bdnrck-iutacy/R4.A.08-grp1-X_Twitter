@@ -34,6 +34,11 @@ export async function initProfile() {
     const followingCount = document.getElementById('count-following');
     const followBtn = document.getElementById('btn-follow');
 
+    const followModal = document.getElementById('follow-list-modal');
+    const closeFollowModal = document.getElementById('close-follow-modal');
+    const followModalTitle = document.getElementById('follow-modal-title');
+    const followListContainer = document.getElementById('follow-list-container');
+
     try {
         const [userData, stats, followStatus, initialTweets] = await Promise.all([
             api.getUserProfile(TARGET_ID),
@@ -97,6 +102,45 @@ export async function initProfile() {
                 };
             }
         }
+
+        // --- GESTION DE LA MODALE ABONNÉS / ABONNEMENTS ---
+        if (closeFollowModal) {
+            closeFollowModal.onclick = () => followModal.style.display = 'none';
+        }
+
+        async function showFollowList(type) {
+            followModal.style.display = 'flex';
+            followModalTitle.textContent = type === 'followers' ? 'Abonnés' : 'Abonnements';
+            followListContainer.innerHTML = '<p style="text-align:center; padding: 20px;">Chargement...</p>';
+
+            let users = type === 'followers' ? await api.getFollowers(TARGET_ID) : await api.getFollowing(TARGET_ID);
+
+            if (users.length === 0) {
+                followListContainer.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">Personne ici pour le moment.</p>';
+                return;
+            }
+
+            followListContainer.innerHTML = users.map(u => {
+                const avatarUrl = u.photo_profil || `https://ui-avatars.com/api/?name=${u.handle}&background=random&color=fff`;
+                // Cliquer sur un utilisateur redirige vers son profil
+                return `
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s;" 
+                         onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'" 
+                         onmouseout="this.style.backgroundColor='transparent'"
+                         onclick="localStorage.setItem('viewUserId', ${u.id}); window.location.reload();">
+                        <img src="${avatarUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: var(--text-main);">${u.name}</div>
+                            <div style="color: var(--text-muted); font-size: 0.9rem;">@${u.handle}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Rendre les compteurs cliquables (en ciblant le parent span)
+        if (followersCount) followersCount.parentElement.onclick = () => showFollowList('followers');
+        if (followingCount) followingCount.parentElement.onclick = () => showFollowList('following');
 
         // --- GESTION DE LA MODALE D'ÉDITION (CORRIGÉE) ---
         if (isMe && openBtn && modal) {

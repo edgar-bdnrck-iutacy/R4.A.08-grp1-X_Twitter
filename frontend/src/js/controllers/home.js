@@ -40,10 +40,24 @@ export async function initHome() {
             if (result) {
                 const counter = likeBtn.querySelector('.like-count');
                 if (counter) counter.textContent = result.likes;
-                likeBtn.style.color = result.isLiked ? "#f91880" : "";
                 
+                // --- MISE À JOUR DU SVG ET DE LA COULEUR ---
+                const iconSvg = likeBtn.querySelector('.heart-icon');
+                if (result.isLiked) {
+                    likeBtn.style.color = "#f91880";
+                    iconSvg.setAttribute('fill', 'currentColor');
+                    iconSvg.setAttribute('stroke', 'none');
+                } else {
+                    likeBtn.style.color = "";
+                    iconSvg.setAttribute('fill', 'none');
+                    iconSvg.setAttribute('stroke', 'currentColor');
+                }
+                
+                // Petit effet de rebond
+                likeBtn.style.display = "inline-flex";
+                likeBtn.style.transition = "transform 0.15s ease-in-out";
                 likeBtn.style.transform = "scale(1.2)";
-                setTimeout(() => likeBtn.style.transform = "scale(1)", 100);
+                setTimeout(() => likeBtn.style.transform = "scale(1)", 150);
             }
             return;
         }
@@ -111,17 +125,14 @@ function renderTweets(tweets, container) {
         return;
     }
 
-    // --- LE PETIT ESPION ---
-    // Regarde ta console F12, clique sur le petit triangle à côté de l'objet
-    // pour voir le VRAI nom de la clé de l'ID (ex: id_auteur, user_id, etc.)
-    console.log("Premier tweet reçu :", tweets[0]);
-
     container.innerHTML = tweets.map(tweet => {
         const profilePic = tweet.author_photo || `https://ui-avatars.com/api/?name=${tweet.author}&background=random&color=fff`;
-        const likedStyle = tweet.isLiked ? 'style="color: #f91880;"' : '';
         
-        // ON TRIBUCHE ICI : Il faut trouver la bonne clé. 
-        // Teste toutes ces variantes, ton ID est forcément dans l'une d'elles.
+        // On prépare le style et les attributs du SVG en fonction du statut "isLiked"
+        const likedColor = tweet.isLiked ? 'color: #f91880;' : '';
+        const heartFill = tweet.isLiked ? 'currentColor' : 'none';
+        const heartStroke = tweet.isLiked ? 'none' : 'currentColor';
+        
         const authorId = tweet.id_utilisateur;
 
         return `
@@ -139,19 +150,29 @@ function renderTweets(tweets, container) {
                     <p class="tweet-text" style="color: var(--text-main); margin-bottom: 10px; line-height: 1.4;">${tweet.content}</p>
                     
                     <div class="tweet-footer" style="display: flex; gap: 40px; color: var(--text-muted); font-size: 0.9rem;">
-                        <span class="btn-like" data-id="${tweet.id}" ${likedStyle} style="cursor:pointer;">
-                            ❤️ <span class="like-count">${tweet.likes || 0}</span>
+                        
+                        <span class="btn-like" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center; transition: color 0.2s; ${likedColor}">
+                            <svg class="heart-icon" viewBox="0 0 24 24" fill="${heartFill}" stroke="${heartStroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px; transition: fill 0.2s, stroke 0.2s;">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            <span class="like-count">${tweet.likes || 0}</span>
                         </span>
-                        <span class="btn-comment" data-id="${tweet.id}" style="cursor:pointer;">
-                            💬 <span class="comment-count">${parseInt(tweet.comments) || 0}</span>
+
+                        <span class="btn-comment" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center; transition: color 0.2s;">
+                            <svg class="comment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span class="comment-count">${parseInt(tweet.comments) || 0}</span>
                         </span>
+
                     </div>
-                    <div class="comments-section" id="comments-${tweet.id}" style="display: none;"></div>
+                    <div class="comments-section" id="comments-${tweet.id}" style="display: none; margin-top: 15px;"></div>
                 </div>
             </div>
         `;
     }).join('');
 }
+
 function renderCommentsUI(postId, comments, section) {
     let html = comments.length === 0 
         ? `<p style="color: var(--text-muted); font-size: 0.9rem; padding: 10px;">Soyez le premier à répondre !</p>`
