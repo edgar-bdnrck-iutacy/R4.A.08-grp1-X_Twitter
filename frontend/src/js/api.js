@@ -217,6 +217,7 @@ export const api = {
             return [];
         }
     },
+    
     async getFollowStatus(myId, targetId) {
         try {
             const res = await fetch(`${API_BASE_URL}/users/${myId}/is-following/${targetId}`);
@@ -224,5 +225,22 @@ export const api = {
         } catch (e) {
             return { isFollowing: false };
         }
-    }
+    },
+
+    async searchPostsByHashtag(hashtag) {
+        try {
+            // On enlève le # s'il est présent pour l'URL
+            const cleanTag = hashtag.replace('#', '');
+            const response = await fetch(`${API_BASE_URL}/posts/search/hashtag/${encodeURIComponent(cleanTag)}`);
+            if (!response.ok) throw new Error("Erreur recherche hashtag");
+            const posts = await response.json();
+            return posts.map(post => ({
+                ...post,
+                handle: `@${post.author}`
+            }));
+        } catch (error) {
+            console.error("Erreur searchPostsByHashtag:", error);
+            return [];
+        }
+    },
 };
