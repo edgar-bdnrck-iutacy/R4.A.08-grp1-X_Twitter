@@ -11,9 +11,11 @@
     <div class="app-layout">
         <nav id="sidebar">
             <div class="sidebar-logo">
-                <svg viewBox="0 0 24 24" aria-hidden="true" class="x-logo-sidebar">
-                    <g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g>
-                </svg>
+                <a href="#home" style="text-decoration: none; color: inherit; display: inline-block; padding: 10px; border-radius: 50%; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="x-logo-sidebar">
+                        <g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g>
+                    </svg>
+                </a>
             </div>
             
             <ul>
@@ -40,7 +42,19 @@
             </ul>
         
             <div class="sidebar-auth">
-                <div class="current-user-info" id="current-user-info">
+
+                <div class="current-user-info" id="current-user-info" 
+                     style="cursor: pointer; transition: background-color 0.2s; padding: 10px; border-radius: 30px; display: flex; align-items: center;" 
+                     onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'" 
+                     onmouseout="this.style.backgroundColor='transparent'"
+                     onclick="
+                        const myId = localStorage.getItem('userId'); 
+                        if(myId) {
+                            localStorage.setItem('viewUserId', myId);
+                            window.location.hash = '#profile';
+                            if(window.location.hash === '#profile') window.location.reload(); 
+                        }
+                     ">
                     <img id="current-user-avatar" src="" class="tweet-avatar-mini" alt="avatar" 
                          style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 10px;">
                     

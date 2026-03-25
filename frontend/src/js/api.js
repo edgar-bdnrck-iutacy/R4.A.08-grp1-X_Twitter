@@ -7,8 +7,10 @@ export const api = {
     
     // 1. Récupérer tous les tweets
     async getFeed() {
+        const userId = this.getCurrentUserId(); // 👈 On récupère l'ID du user
         try {
-            const response = await fetch(`${API_BASE_URL}/posts`);
+            // 👈 On envoie l'ID dans l'URL (?userId=...)
+            const response = await fetch(`${API_BASE_URL}/posts?userId=${userId}`);
             if (!response.ok) throw new Error("Erreur réseau");
             const posts = await response.json();
             return posts.map(post => ({
@@ -57,9 +59,10 @@ export const api = {
         }
     },
 
-    async getUserPosts(userId) {
+    async getUserPosts(targetUserId) {
+        const currentUserId = this.getCurrentUserId(); // 👈 On récupère l'ID aussi ici
         try {
-            const response = await fetch(`${API_BASE_URL}/posts/user/${userId}`);
+            const response = await fetch(`${API_BASE_URL}/posts/user/${targetUserId}?userId=${currentUserId}`);
             const posts = await response.json();
             return posts.map(p => ({ ...p, handle: `@${p.author}` }));
         } catch (error) {
@@ -166,6 +169,28 @@ export const api = {
         }
     },
 
+    async getFollowers(userId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${userId}/followers`);
+            if (!res.ok) throw new Error("Erreur récupération followers");
+            return await res.json();
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
+    },
+
+    async getFollowing(userId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${userId}/following`);
+            if (!res.ok) throw new Error("Erreur récupération following");
+            return await res.json();
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
+    },
+
     // S'abonner ou se désabonner
     async toggleFollow(targetUserId) {
         const userId = this.getCurrentUserId();
@@ -192,6 +217,7 @@ export const api = {
             return [];
         }
     },
+    
     async getFollowStatus(myId, targetId) {
         try {
             const res = await fetch(`${API_BASE_URL}/users/${myId}/is-following/${targetId}`);
@@ -199,5 +225,22 @@ export const api = {
         } catch (e) {
             return { isFollowing: false };
         }
-    }
+    },
+
+    async searchPostsByHashtag(hashtag) {
+        try {
+            // On enlève le # s'il est présent pour l'URL
+            const cleanTag = hashtag.replace('#', '');
+            const response = await fetch(`${API_BASE_URL}/posts/search/hashtag/${encodeURIComponent(cleanTag)}`);
+            if (!response.ok) throw new Error("Erreur recherche hashtag");
+            const posts = await response.json();
+            return posts.map(post => ({
+                ...post,
+                handle: `@${post.author}`
+            }));
+        } catch (error) {
+            console.error("Erreur searchPostsByHashtag:", error);
+            return [];
+        }
+    },
 };

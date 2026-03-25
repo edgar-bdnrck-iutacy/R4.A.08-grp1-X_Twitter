@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 // On importe la nouvelle fonction en haut du fichier
 const { 
-  getAllPosts, createPost, toggleLike, getPostsByUserId, getTrendingHashtags, getCommentsByPostId , addComment
+  getAllPosts, createPost, toggleLike, getPostsByUserId, getTrendingHashtags, getCommentsByPostId, addComment, getPostsByHashtag 
 } = require('../services/postsService');
 
 
@@ -81,6 +81,17 @@ router.get('/trends', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Erreur lors de la récupération des tendances" });
+  }
+});
+
+// Nouvelle route pour chercher des tweets par hashtag
+router.get('/search/hashtag/:tag', async (req, res) => {
+  try {
+      const posts = await getPostsByHashtag(req.params.tag);
+      res.json(posts);
+  } catch (error) {
+      console.error("Erreur GET hashtag:", error);
+      res.status(500).json({ error: "Erreur lors de la recherche par hashtag" });
   }
 });
 
