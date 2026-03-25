@@ -19,6 +19,18 @@ export async function initHome() {
 
     async function refreshFeed() {
         const tweets = await api.getFeed();
+        
+        // --- NOUVEAU : On récupère tes signets pour colorier les bons tweets ---
+        const myId = localStorage.getItem('userId');
+        if (myId) {
+            const myBookmarks = await api.getUserBookmarks(myId);
+            const bookmarkedIds = myBookmarks.map(b => b.id);
+            tweets.forEach(tweet => {
+                tweet.isBookmarked = bookmarkedIds.includes(tweet.id);
+            });
+        }
+        // ------------------------------------------------------------------------
+
         renderTweets(tweets, container);
     }
 
@@ -109,6 +121,37 @@ export async function initHome() {
             }
             return;
         }
+
+        // ==========================================
+        // 5. Action : Signets (Bookmarks) avec Toggle
+        // ==========================================
+        const bookmarkBtn = e.target.closest('.btn-bookmark');
+        if (bookmarkBtn) {
+            const postId = bookmarkBtn.dataset.id;
+            const result = await api.bookmarkPost(postId);
+            
+            if (result && result.success) {
+                const svg = bookmarkBtn.querySelector('svg');
+                if (svg) { 
+                    svg.style.transition = "all 0.2s ease-in-out";
+                    svg.style.transform = "scale(1.4)";
+                    
+                    // On colorie ou on rend transparent selon l'état retourné par la BDD
+                    if (result.bookmarked) {
+                        svg.setAttribute('fill', '#1d9bf0');
+                        svg.setAttribute('stroke', '#1d9bf0');
+                    } else {
+                        svg.setAttribute('fill', 'none');
+                        svg.setAttribute('stroke', 'currentColor');
+                    }
+                    
+                    setTimeout(() => svg.style.transform = "scale(1)", 200);
+                }
+            } else {
+                console.error("Erreur API Signets");
+            }
+            return;
+        }
     });
 
     // Publication Tweet
@@ -138,6 +181,7 @@ function renderTweets(tweets, container) {
 
     container.innerHTML = tweets.map(tweet => {
         const profilePic = tweet.author_photo || `https://ui-avatars.com/api/?name=${tweet.author}&background=random&color=fff`;
+        const likedStyle = tweet.isLiked ? 'style="color: #f91880;"' : '';
         
         // On prépare le style et les attributs du SVG en fonction du statut "isLiked"
         const likedColor = tweet.isLiked ? 'color: #f91880;' : '';
@@ -145,6 +189,10 @@ function renderTweets(tweets, container) {
         const heartStroke = tweet.isLiked ? 'none' : 'currentColor';
         
         const authorId = tweet.id_utilisateur;
+
+        // --- NOUVEAU : On prépare les couleurs du signet ---
+        const bookmarkFill = tweet.isBookmarked ? '#1d9bf0' : 'none';
+        const bookmarkStroke = tweet.isBookmarked ? '#1d9bf0' : 'currentColor';
 
         return `
             <div class="tweet-card" style="display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-color);">
@@ -160,6 +208,22 @@ function renderTweets(tweets, container) {
 
                     <p class="tweet-text" style="color: var(--text-main); margin-bottom: 10px; line-height: 1.4; overflow-wrap: break-word; word-break: break-word;">${tweet.content}</p>
                     
+                    <div class="tweet-footer" style="display: flex; gap: 40px; color: var(--text-muted); font-size: 0.9rem; align-items: center; margin-top: 10px;">
+                        <span class="btn-like" data-id="${tweet.id}" ${likedStyle} style="cursor:pointer; display: flex; align-items: center; gap: 5px;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="${tweet.isLiked ? 'currentColor' : 'none'}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            <span class="like-count">${tweet.likes || 0}</span>
+                        </span>
+                        
+                        <span class="btn-comment" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center; gap: 5px;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            <span class="comment-count">${parseInt(tweet.comments) || 0}</span>
+                        </span>
+
+                        <span class="btn-bookmark" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center;" title="Sauvegarder">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="${bookmarkStroke}" stroke-width="2" fill="${bookmarkFill}"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        </span>
+                    </div>  
+                    <div class="comments-section" id="comments-${tweet.id}" style="display: none;"></div>
                     <div class="tweet-footer" style="display: flex; gap: 40px; color: var(--text-muted); font-size: 0.9rem;">
                         
                         <span class="btn-like" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center; transition: color 0.2s; ${likedColor}">
