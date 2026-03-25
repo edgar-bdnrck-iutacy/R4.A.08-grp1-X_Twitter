@@ -82,6 +82,24 @@ export const api = {
             return null;
         }
     },
+
+    // Fonction pour ajouter un signet
+    async bookmarkPost(postId) {
+        const userId = this.getCurrentUserId(); 
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/${postId}/bookmark`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            if (!response.ok) throw new Error("Impossible d'ajouter aux signets");
+            
+            return await response.json();
+        } catch (error) {
+            console.error("Erreur bookmarkPost:", error);
+            return null;
+        }
+    },
     
     // 4. Récupérer les tendances
     getTrends: async () => {
@@ -153,6 +171,18 @@ export const api = {
             const replies = await response.json();
             return replies.map(p => ({ ...p, handle: `@${p.author}` }));
         } catch (error) { return []; }
+    },
+    async getUserBookmarks(userId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/user/${userId}/bookmarks`);
+            if (!response.ok) throw new Error("Erreur signets");
+            const posts = await response.json();
+            
+            // AJOUT ICI : On force 'isBookmarked' à true puisqu'on sait qu'on récupère la liste des signets !
+            return posts.map(p => ({ ...p, handle: `@${p.author}`, isBookmarked: true }));
+        } catch (error) {
+            return [];
+        }
     },
 
     // Récupérer le nombre d'abonnés/abonnements

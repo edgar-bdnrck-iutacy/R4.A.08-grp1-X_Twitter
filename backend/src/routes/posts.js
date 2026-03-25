@@ -1,10 +1,10 @@
 const express = require('express');
+const db = require('../db');
 const router = express.Router();
-// On importe la nouvelle fonction en haut du fichier
+
 const { 
   getAllPosts, createPost, toggleLike, getPostsByUserId, getTrendingHashtags, getCommentsByPostId , addComment
 } = require('../services/postsService');
-
 
 // 1. Récupérer tous les posts (Flux général)
 router.get("/", async (req, res) => {
@@ -16,9 +16,6 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Unable to fetch posts" });
   }
 });
-
-
-
 
 // 2. Récupérer les posts d'un utilisateur précis (Profil)
 router.get("/user/:id", async (req, res) => {
@@ -32,12 +29,10 @@ router.get("/user/:id", async (req, res) => {
 });
 
 // 3. Créer un nouveau post
-
 router.post("/", async (req, res) => {
   try {
       const { userId, content } = req.body;
 
-      // Validations strictes
       if (!userId || !content || typeof content !== "string") {
           return res.status(400).json({ error: "L'identifiant utilisateur et le contenu sont requis." });
       }
@@ -47,7 +42,6 @@ router.post("/", async (req, res) => {
           return res.status(400).json({ error: "Le contenu doit être compris entre 1 et 280 caractères." });
       }
 
-      // Appel au service avec le userId
       const newPost = await createPost(userId, cleanContent);
       return res.status(201).json(newPost);
   } catch (error) {
@@ -56,7 +50,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-
+// 4. Liker un post
 router.post("/:id/like", async (req, res) => {
   try {
     const postId = req.params.id;
@@ -74,6 +68,7 @@ router.post("/:id/like", async (req, res) => {
   }
 });
 
+// 5. Tendances
 router.get('/trends', async (req, res) => {
   try {
     const trends = await getTrendingHashtags();
@@ -84,7 +79,7 @@ router.get('/trends', async (req, res) => {
   }
 });
 
-// Nouvelle route GET pour les commentaires
+// 6. Récupérer les commentaires
 router.get('/:id/comments', async (req, res) => {
   try {
       const postId = req.params.id;
@@ -96,7 +91,7 @@ router.get('/:id/comments', async (req, res) => {
   }
 });
 
-
+// 7. Ajouter un commentaire
 router.post('/:id/comments', async (req, res) => {
   try {
       const { userId, content } = req.body;
@@ -109,5 +104,72 @@ router.post('/:id/comments', async (req, res) => {
   }
 });
 
+// =========================================================================
+// --- NOUVEAUTÉS : LES SIGNETS (BOOKMARKS) ---
+// =========================================================================
+
+// 8. AJOUTER / RETIRER un signet (Le "Toggle" qui te manquait)
+router.post('/:id/bookmark', async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { userId } = req.body;
+
+        if (!userId) return res.status(400).json({ error: "User ID manquant" });
+
+        // On vérifie si le signet existe déjà
+        const check = await db.query(
+            'SELECT * FROM signets WHERE id_utilisateur = $1 AND id_tweet = $2',
+            [userId, postId]
+        );
+
+        if (check.rows.length === 0) {
+            // S'il n'existe pas : On l'ajoute
+            await db.query(
+                'INSERT INTO signets (id_utilisateur, id_tweet) VALUES ($1, $2)',
+                [userId, postId]
+            );
+            await db.query(
+                'UPDATE tweet SET nb_bookmarks_tweet = nb_bookmarks_tweet + 1 WHERE id_tweet = $1',
+                [postId]
+            );
+            return res.json({ success: true, message: "Ajouté", bookmarked: true });
+        } else {
+            // S'il existe déjà : On le retire
+            await db.query(
+                'DELETE FROM signets WHERE id_utilisateur = $1 AND id_tweet = $2',
+                [userId, postId]
+            );
+            await db.query(
+                'UPDATE tweet SET nb_bookmarks_tweet = nb_bookmarks_tweet - 1 WHERE id_tweet = $1',
+                [postId]
+            );
+            return res.json({ success: true, message: "Retiré", bookmarked: false });
+        }
+    } catch (error) {
+        console.error("Erreur bookmark:", error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+});
+
+// 9. RÉCUPÉRER les signets d'un utilisateur pour son profil
+router.get('/user/:id/bookmarks', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const query = `
+            SELECT t.id_tweet as id, t.description_tweet as content, t.nb_likes_tweet as likes, t.nb_commentaires_tweet as comments,
+                   u.nom_utilisateur as author_name, u.username_utilisateur as author, u.photo_profil_utilisateur as author_photo
+            FROM tweet t
+            JOIN signets s ON t.id_tweet = s.id_tweet
+            JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+            WHERE s.id_utilisateur = $1
+            ORDER BY s.date_signet DESC
+        `;
+        const result = await db.query(query, [userId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Erreur récupération signets:", error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+});
 
 module.exports = router;
