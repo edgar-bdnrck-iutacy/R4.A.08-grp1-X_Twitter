@@ -186,6 +186,30 @@ async function addComment(postId, userId, content) {
   );
 }
 
+/* Récupère les tweets liés à un hashtag spécifique */
+async function getPostsByHashtag(hashtag) {
+  const { rows } = await db.query(`
+    SELECT
+      t.id_tweet AS id,
+      u.id_utilisateur AS id_utilisateur,
+      u.username_utilisateur AS author,
+      u.nom_utilisateur AS author_name,
+      u.photo_profil_utilisateur AS author_photo,
+      t.description_tweet AS content,
+      t.nb_likes_tweet AS likes,
+      (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
+      t.date_publication_tweet AS created_at
+    FROM tweet t
+    JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+    JOIN contient c ON t.id_tweet = c.id_tweet
+    JOIN hashtag h ON c.id_hashtag = h.id_hashtag
+    WHERE h.nom_hashtag ILIKE $1
+    ORDER BY t.date_publication_tweet DESC
+  `, [hashtag]);
+
+  return rows;
+}
+
 module.exports = {
   getAllPosts,
   createPost,
@@ -193,5 +217,6 @@ module.exports = {
   getPostsByUserId,
   getTrendingHashtags,
   getCommentsByPostId,
-  addComment
+  addComment,
+  getPostsByHashtag
 };
