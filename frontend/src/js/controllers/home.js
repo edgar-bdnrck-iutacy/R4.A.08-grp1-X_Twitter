@@ -2,6 +2,17 @@
 import { api } from '../api.js';
 
 export async function initHome() {
+    const composeAvatar = document.getElementById('compose-avatar');
+    const sidebarAvatar = document.getElementById('current-user-avatar'); 
+
+    if (composeAvatar && sidebarAvatar) {
+        setTimeout(() => {
+            if (sidebarAvatar.src) {
+                composeAvatar.src = sidebarAvatar.src;
+            }
+        }, 150);
+    }
+
     const container = document.getElementById('tweets-container');
     const postBtn = document.getElementById('btn-post');
     const textarea = document.querySelector('.compose-tweet textarea');
@@ -147,7 +158,7 @@ function renderTweets(tweets, container) {
                         <span class="handle" style="color: var(--text-muted); margin-left: 5px;">@${tweet.author}</span>
                     </div>
 
-                    <p class="tweet-text" style="color: var(--text-main); margin-bottom: 10px; line-height: 1.4;">${tweet.content}</p>
+                    <p class="tweet-text" style="color: var(--text-main); margin-bottom: 10px; line-height: 1.4; overflow-wrap: break-word; word-break: break-word;">${tweet.content}</p>
                     
                     <div class="tweet-footer" style="display: flex; gap: 40px; color: var(--text-muted); font-size: 0.9rem;">
                         
