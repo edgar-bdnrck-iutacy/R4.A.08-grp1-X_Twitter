@@ -1,24 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-const postsRouter = require("./routes/posts");
-
+const express = require('express');
+const cors = require('cors');
+const postsRoutes = require('./routes/posts');
+const usersRoutes = require('./routes/users');
+const authRoutes = require('./routes/auth');
 const app = express();
 
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.json({
-    message: "Twitter/X backend is running"
-  });
-});
 
-app.use("/posts", postsRouter);
-
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Route not found"
-  });
-});
+// Branchement des routes
+app.use('/api/posts', postsRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/auth', authRoutes);
 
 module.exports = app;

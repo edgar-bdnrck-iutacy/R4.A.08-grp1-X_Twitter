@@ -1,89 +1,113 @@
-const express = require("express");
-const {
-  getAllPosts,
-  createPost,
-  likePost
-} = require("../services/postsService");
-
+const express = require('express');
 const router = express.Router();
+// On importe la nouvelle fonction en haut du fichier
+const { 
+  getAllPosts, createPost, toggleLike, getPostsByUserId, getTrendingHashtags, getCommentsByPostId , addComment
+} = require('../services/postsService');
 
+
+// 1. Récupérer tous les posts (Flux général)
 router.get("/", async (req, res) => {
   try {
     const posts = await getAllPosts();
     res.status(200).json(posts);
   } catch (error) {
     console.error("GET /posts error:", error);
-    res.status(500).json({
-      error: "Unable to fetch posts"
-    });
+    res.status(500).json({ error: "Unable to fetch posts" });
   }
 });
+
+
+
+
+// 2. Récupérer les posts d'un utilisateur précis (Profil)
+router.get("/user/:id", async (req, res) => {
+  try {
+    const posts = await getPostsByUserId(req.params.id);
+    res.json(posts);
+  } catch (error) {
+    console.error("GET /posts/user/:id error:", error);
+    res.status(500).json({ error: "Erreur serveur lors de la récupération des posts" });
+  }
+});
+
+// 3. Créer un nouveau post
 
 router.post("/", async (req, res) => {
   try {
-    const author = typeof req.body.author === "string" ? req.body.author.trim() : "";
-    const content = typeof req.body.content === "string" ? req.body.content.trim() : "";
+      const { userId, content } = req.body;
 
-    if (!author) {
-      return res.status(400).json({
-        error: "Author is required"
-      });
-    }
+      // Validations strictes
+      if (!userId || !content || typeof content !== "string") {
+          return res.status(400).json({ error: "L'identifiant utilisateur et le contenu sont requis." });
+      }
 
-    if (!content) {
-      return res.status(400).json({
-        error: "Content is required"
-      });
-    }
+      const cleanContent = content.trim();
+      if (cleanContent.length === 0 || cleanContent.length > 280) {
+          return res.status(400).json({ error: "Le contenu doit être compris entre 1 et 280 caractères." });
+      }
 
-    if (author.length > 50) {
-      return res.status(400).json({
-        error: "Author must not exceed 50 characters"
-      });
-    }
-
-    if (content.length > 280) {
-      return res.status(400).json({
-        error: "Content must not exceed 280 characters"
-      });
-    }
-
-    const newPost = await createPost(author, content);
-
-    return res.status(201).json(newPost);
+      // Appel au service avec le userId
+      const newPost = await createPost(userId, cleanContent);
+      return res.status(201).json(newPost);
   } catch (error) {
-    console.error("POST /posts error:", error);
-    return res.status(500).json({
-      error: "Unable to create post"
-    });
+      console.error("POST /posts error:", error);
+      return res.status(500).json({ error: "Erreur lors de la création du post" });
   }
 });
+
 
 router.post("/:id/like", async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const postId = req.params.id;
+    const { userId } = req.body; 
 
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({
-        error: "Invalid post id"
-      });
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
     }
 
-    const updatedPost = await likePost(id);
-
-    if (!updatedPost) {
-      return res.status(404).json({
-        error: "Post not found"
-      });
-    }
-
-    return res.status(200).json(updatedPost);
+    const result = await toggleLike(postId, userId);
+    res.json(result);
   } catch (error) {
-    console.error("POST /posts/:id/like error:", error);
-    return res.status(500).json({
-      error: "Unable to like post"
-    });
+    console.error(error);
+    res.status(500).json({ error: "Erreur toggle like" });
   }
 });
+
+router.get('/trends', async (req, res) => {
+  try {
+    const trends = await getTrendingHashtags();
+    res.json(trends);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur lors de la récupération des tendances" });
+  }
+});
+
+// Nouvelle route GET pour les commentaires
+router.get('/:id/comments', async (req, res) => {
+  try {
+      const postId = req.params.id;
+      const comments = await getCommentsByPostId(postId);
+      res.json(comments);
+  } catch (error) {
+      console.error("Erreur GET comments:", error);
+      res.status(500).json({ error: "Erreur lors de la récupération des commentaires" });
+  }
+});
+
+
+router.post('/:id/comments', async (req, res) => {
+  try {
+      const { userId, content } = req.body;
+      if (!userId || !content) return res.status(400).json({ error: "Données requises" });
+      
+      await addComment(req.params.id, userId, content);
+      res.status(201).json({ success: true });
+  } catch (error) {
+      res.status(500).json({ error: "Erreur lors de la création du commentaire" });
+  }
+});
+
 
 module.exports = router;

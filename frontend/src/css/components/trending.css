@@ -3,6 +3,7 @@
     position: sticky;
     top: 0;
     height: 100vh;
+    margin-left: 30px; /* C'est ici qu'on crée le bel espace ! */
 }
 
 #trending h3 {

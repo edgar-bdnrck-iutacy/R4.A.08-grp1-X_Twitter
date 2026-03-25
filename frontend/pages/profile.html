@@ -1,20 +1,72 @@
 <div class="profile-view">
     <header class="profile-header-nav">
-        <h2 id="profile-name">Chargement...</h2>
+        <div>
+            <h2 id="profile-name">Chargement...</h2>
+            
+        </div>
     </header>
+    
+    <div class="profile-banner"></div>
+
     <div class="profile-details">
-        <div class="avatar-placeholder"></div>
-        <div class="profile-info">
-            <h3 id="profile-handle">@handle</h3>
-            <p id="profile-bio">Biographie de l'utilisateur</p>
-        </div>
-    </div>
-    <div class="profile-tabs">
-        <button class="active">Posts</button>
-        <button>Réponses</button>
       
-        <button>J'aime</button>
-    </div>
-    <div id="user-tweets-container">
+        <div class="avatar-placeholder"></div>
+
+        <div class="profile-info">
+            <h3 id="profile-name-text">Nom complet</h3> 
+            <p id="profile-handle">@handle</p>
+            <p id="profile-bio">Biographie de l'utilisateur</p>
+            <div class="edit-profile-btn-container">
+                <button id="open-edit-modal" class="btn-secondary" style="display: none;">Éditer le profil</button>
+                <button id="btn-follow" class="btn-primary" style="display: none;">Suivre</button>
+            </div>
+    
+            <p id="profile-join-date" style="color: var(--text-muted); font-size: 0.95rem; margin-top: 10px;"></p>
+
+            <div class="profile-stats">
+                <span style="cursor: pointer;"><strong id="count-following">0</strong> Abonnements</span>
+                <span style="cursor: pointer; margin-left: 20px;"><strong id="count-followers">0</strong> Abonnés</span>
+            </div>
         </div>
+        
+        <div id="edit-profile-modal" class="modal-overlay">
+            <div class="modal-box">
+                <header class="modal-header">
+                    <span id="close-modal" class="close-btn">&times;</span>
+                    <h3>Éditer le profil</h3>
+                    <button id="save-profile" >Enregistrer</button>
+                </header>
+        
+                <form id="edit-profile-form">
+                    <div class="input-group">
+                        <label for="edit-name">Nom complet</label>
+                        <input type="text" id="edit-name" placeholder="Votre nom" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="edit-bio">Biographie</label>
+                        <textarea id="edit-bio" placeholder="Votre bio..."></textarea>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="edit-avatar">URL de l'avatar</label>
+                        <input type="text" id="edit-avatar" placeholder="https://exemple.com/photo.jpg">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="edit-banner">URL de la bannière</label>
+                        <input type="text" id="edit-banner" placeholder="https://exemple.com/banniere.jpg">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-tabs">
+        <button class="active" data-tab="posts">Posts</button>
+        <button data-tab="replies">Réponses</button>
+        <button data-tab="likes">J'aime</button>
+    </div>
+
+    <div id="user-tweets-container"></div>
 </div>
