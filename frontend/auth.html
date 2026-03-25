@@ -34,10 +34,34 @@
                 <button type="submit" class="btn-login">Se connecter</button>
             </form>
 
-            <p class="auth-switch">Vous n'avez pas de compte ? <span id="toggle-auth">S'inscrire</span></p>
-        </div>
-    </div>
+        </form>
 
+        <form id="register-form" style="display: none;">
+            <div class="input-group">
+                <input type="text" id="reg-nom" placeholder=" " required>
+                <label>Nom d'affichage</label>
+            </div>
+            <div class="input-group">
+                <input type="text" id="reg-username" placeholder=" " required>
+                <label>Nom d'utilisateur (sans le @)</label>
+            </div>
+            <div class="input-group">
+                <input type="email" id="reg-email" placeholder=" " required>
+                <label>Email</label>
+            </div>
+            <div class="input-group">
+                <input type="password" id="reg-password" placeholder=" " required>
+                <label>Mot de passe</label>
+            </div>
+            <button type="submit" class="btn-login">Créer mon compte</button>
+        </form>
+
+            <p class="auth-switch">
+                <span id="auth-switch-text">Vous n'avez pas de compte ?</span> 
+                <strong id="toggle-auth" style="cursor: pointer; color: #1da1f2; margin-left: 5px;">S'inscrire</strong>
+                </p>
+            </div>
+        </div>
     <script type="module" src="./src/js/controllers/auth.js"></script>
 </body>
 </html>
