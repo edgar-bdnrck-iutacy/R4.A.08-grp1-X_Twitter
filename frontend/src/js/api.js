@@ -7,9 +7,9 @@ export const api = {
     
     // 1. Récupérer tous les tweets
     async getFeed() {
-        const userId = this.getCurrentUserId(); // 👈 On récupère l'ID du user
+        const userId = this.getCurrentUserId(); 
         try {
-            // 👈 On envoie l'ID dans l'URL (?userId=...)
+            
             const response = await fetch(`${API_BASE_URL}/posts?userId=${userId}`);
             if (!response.ok) throw new Error("Erreur réseau");
             const posts = await response.json();
@@ -23,29 +23,40 @@ export const api = {
         }
     },
 
-    async createPost(content) {
-        const userId = this.getCurrentUserId(); 
 
+
+    async createPost(content, imageFile = null) {
+        const userId = this.getCurrentUserId(); 
+        
+        // On utilise FormData au lieu d'un objet JSON classique
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('content', content);
+        
+        // On ajoute l'image seulement si l'utilisateur en a choisi une
+        if (imageFile) {
+            formData.append('tweetImage', imageFile);
+        }
+    
         try {
             const response = await fetch(`${API_BASE_URL}/posts`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, content }) 
+                // ATTENTION : On ne met SURTOUT PAS de Content-Type header ici.
+                // Le navigateur va le mettre tout seul avec le "boundary" FormData.
+                body: formData 
             });
-
+    
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || "Erreur lors de la publication");
+                throw new Error(errorData.error || "Erreur publication");
             }
-
-            const newPost = await response.json();
-            return { ...newPost, handle: `@${newPost.author}` };
+    
+            return await response.json();
         } catch (error) {
             console.error("Erreur createPost:", error);
             return null;
         }
     },
-
     // 3. Récupérer un profil utilisateur
     async getUserProfile(userId) {
         try {
@@ -60,7 +71,7 @@ export const api = {
     },
 
     async getUserPosts(targetUserId) {
-        const currentUserId = this.getCurrentUserId(); // 👈 On récupère l'ID aussi ici
+        const currentUserId = this.getCurrentUserId(); 
         try {
             const response = await fetch(`${API_BASE_URL}/posts/user/${targetUserId}?userId=${currentUserId}`);
             const posts = await response.json();
@@ -116,8 +127,12 @@ export const api = {
     },
 
     async getComments(postId) {
+        // On récupère l'ID de l'utilisateur actuel
+        const userId = this.getCurrentUserId(); 
         try {
-            const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`);
+            // On ajoute le userId dans l'URL pour que le back puisse checker les likes
+            const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments?userId=${userId}`);
+            
             if (!response.ok) throw new Error("Erreur lors de la récupération");
             return await response.json();
         } catch (error) {
@@ -126,13 +141,25 @@ export const api = {
         }
     },
 
-    async addComment(postId, content) {
+    async addComment(postId, content, imageFile = null) {
         const userId = this.getCurrentUserId();
+        
+        // On crée un FormData (obligatoire pour envoyer des fichiers)
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('content', content);
+        
+        // On ajoute l'image seulement si elle existe
+        if (imageFile) {
+            // "commentImage" doit être EXACTEMENT le même nom que dans ton routes/posts.js
+            formData.append('commentImage', imageFile); 
+        }
+    
         try {
             const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, content })
+                // SURTOUT PAS de headers "Content-Type" ici, le navigateur le gère seul
+                body: formData
             });
             return response.ok;
         } catch (error) {
@@ -273,4 +300,17 @@ export const api = {
             return [];
         }
     },
+    async likeComment(commentId) {
+        const userId = this.getCurrentUserId();
+        const res = await fetch(`${API_BASE_URL}/posts/comments/${commentId}/like`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        return await res.json();
+    },
+    
+    async viewPost(postId) {
+        return await fetch(`${API_BASE_URL}/posts/${postId}/view`, { method: 'POST' });
+    }
 };
