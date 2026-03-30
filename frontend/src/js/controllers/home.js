@@ -51,8 +51,13 @@ export async function initHome() {
 
     async function refreshFeed(mode = currentFeedMode) {
         currentFeedMode = mode;
-        const titleElement = document.querySelector('.header h2');
-        if (titleElement) titleElement.textContent = "Accueil";
+        
+        // 1. Restore the feed tabs if they were hidden by a hashtag search
+        feedTabs.forEach(tab => tab.style.display = '');
+        
+        // 2. Remove the temporary hashtag title if it exists
+        const hashtagTitle = document.getElementById('hashtag-search-title');
+        if (hashtagTitle) hashtagTitle.remove();
 
         const tweets = mode === 'following'
             ? await api.getFollowingFeed()
@@ -95,12 +100,24 @@ export async function initHome() {
     }
 
     async function loadHashtagFeed(tag) {
-        const titleElement = document.querySelector('.header h2');
-        if (titleElement) {
-            titleElement.innerHTML = `
-                <span id="back-to-feed" style="cursor:pointer; margin-right:15px;">←</span>
+        // 1. Hide the normal feed tabs while viewing search results
+        feedTabs.forEach(tab => tab.style.display = 'none');
+
+        // 2. Create a dedicated temporary title for the search to avoid breaking the DOM
+        const header = document.querySelector('.header');
+        if (header) {
+            let hashtagTitle = document.getElementById('hashtag-search-title');
+            if (!hashtagTitle) {
+                hashtagTitle = document.createElement('h2');
+                hashtagTitle.id = 'hashtag-search-title';
+                header.appendChild(hashtagTitle);
+            }
+            
+            hashtagTitle.innerHTML = `
+                <span id="back-to-feed" style="cursor:pointer; margin-right:15px; color:#1d9bf0;">←</span>
                 Résultats pour #${tag.replace('#', '')}
             `;
+            
             document.getElementById('back-to-feed').onclick = () => {
                 updateFeedTabs();
                 refreshFeed(currentFeedMode);
