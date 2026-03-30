@@ -50,9 +50,13 @@
                      onclick="
                         const myId = localStorage.getItem('userId'); 
                         if(myId) {
-                            localStorage.setItem('viewUserId', myId);
-                            window.location.hash = '#profile';
-                            if(window.location.hash === '#profile') window.location.reload(); 
+                            localStorage.removeItem('viewUserId'); 
+                            
+                            if(window.location.hash === '#profile') {
+                                window.dispatchEvent(new Event('hashchange'));
+                            } else {
+                                window.location.hash = '#profile';
+                            }
                         }
                      ">
                     <img id="current-user-avatar" src="" class="tweet-avatar-mini" alt="avatar" 

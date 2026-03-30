@@ -46,6 +46,13 @@ module.exports = router;
 router.post('/register', async (req, res) => {
     const { nom, username, email, password } = req.body;
 
+    const passwordRegex = /^(?=.*[0-9]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return res.status(400).json({ 
+            error: "Le mot de passe doit contenir au moins 8 caractères et au moins un chiffre." 
+        });
+    }
+
     try {
         // 1. On vérifie si l'email existe déjà
         const checkEmail = await db.query(

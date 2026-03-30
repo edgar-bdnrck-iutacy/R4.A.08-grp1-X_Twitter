@@ -130,7 +130,7 @@ async function createPost(userId, content, imageUrl = null) {
 
   const newTweetId = insertResult.rows[0].id_tweet;
 
-// --- GESTION HASHTAGS (Nettoyée) ---
+  // --- GESTION HASHTAGS (Nettoyée) ---
   const hashtags = content.match(/#[a-zA-Z0-9_]+/g);
   if (hashtags) {
       for (let tag of hashtags) {
@@ -164,7 +164,7 @@ async function createPost(userId, content, imageUrl = null) {
           t.description_tweet AS content,
           t.image_url,
           t.nb_likes_tweet AS likes,
-          t.nb_views_tweet,                         -- CORRIGÉ
+          t.nb_views_tweet,                                 -- CORRIGÉ
           (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
           t.date_publication_tweet AS created_at
       FROM tweet t
@@ -271,7 +271,12 @@ async function getPostsByUserId(userId, currentUserId = null) {
           SELECT 1
           FROM reposts r2
           WHERE r2.id_utilisateur = $2 AND r2.id_tweet = t.id_tweet
-        ) AS "isReposted"
+        ) AS "isReposted",
+        EXISTS(
+          SELECT 1 
+          FROM signets s 
+          WHERE s.id_tweet = t.id_tweet AND s.id_utilisateur = $2
+        ) AS "isBookmarked"
       FROM tweet t
       JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
       WHERE t.id_utilisateur = $1
@@ -304,7 +309,12 @@ async function getPostsByUserId(userId, currentUserId = null) {
           SELECT 1
           FROM reposts r2
           WHERE r2.id_utilisateur = $2 AND r2.id_tweet = t.id_tweet
-        ) AS "isReposted"
+        ) AS "isReposted",
+        EXISTS(
+          SELECT 1 
+          FROM signets s 
+          WHERE s.id_tweet = t.id_tweet AND s.id_utilisateur = $2
+        ) AS "isBookmarked"
       FROM reposts r
       JOIN tweet t ON t.id_tweet = r.id_tweet
       JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
@@ -344,7 +354,7 @@ async function getCommentsByPostId(postId, currentUserId = null) {
           u.photo_profil_utilisateur AS author_photo,
           c.description_commentaire AS content,
           c.image_commentaire,
-          c.nb_likes_commentaire,                   -- CORRIGÉ : Nom exact de la colonne
+          c.nb_likes_commentaire,                    -- CORRIGÉ : Nom exact de la colonne
           c.date_publication_commentaire AS created_at,
           EXISTS(SELECT 1 FROM likes_commentaires lc WHERE lc.id_commentaire = c.id_commentaire AND lc.id_utilisateur = $2) AS "isLiked"
       FROM commentaires c
@@ -374,7 +384,7 @@ async function getPostsByHashtag(hashtag) {
       t.description_tweet AS content,
       t.image_url,
       t.nb_likes_tweet AS likes,
-      t.nb_views_tweet,                             -- CORRIGÉ
+      t.nb_views_tweet,                               -- CORRIGÉ
       (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
       t.date_publication_tweet AS created_at
     FROM tweet t

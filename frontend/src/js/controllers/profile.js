@@ -58,7 +58,7 @@ export async function initProfile() {
         // Mise à jour de l'UI
         if (headerName) headerName.textContent = name;
         if (infoName) infoName.textContent = name;
-        if (handleElement) handleElement.textContent = `@${handle}`;
+        if (handleElement) handleElement.textContent = `${handle}`;
         if (bioElement) bioElement.textContent = userData.bio_utilisateur || userData.bio || "Pas encore de bio.";
         
         if (joinDateElement && userData.date_inscription) {
@@ -325,18 +325,27 @@ function renderUserTweets(tweets, container, TARGET_ID) {
                     <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 6px;">
                         🔁 ${tweet.reposted_by_name} a reposté
                     </div>
-                ` : ''}
-    
-                <div class="tweet-header go-to-profile" data-id="${authorId}" style="margin-bottom: 4px; cursor: pointer;">
-                    <strong style="color: var(--text-main);">${tweet.author_name || tweet.author}</strong> 
-                    <span style="color: var(--text-muted); margin-left: 5px;">@${tweet.author}</span>
-                </div>
-    
-                <p style="color: var(--text-main); margin-bottom: 10px; line-height: 1.4; overflow-wrap: break-word;">${tweet.content}</p>
-    
-                ${tweet.image_url ? `
-                    <div style="margin: 10px 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
-                        <img src="http://localhost:3001${tweet.image_url}" style="width: 100%; display: block;">
+                    <p style="color: var(--text-main); margin-bottom: 10px; line-height: 1.4; overflow-wrap: break-word;">${tweet.content}</p>
+                    
+                    ${/* NOUVEAU: Ajout de l'affichage de l'image du tweet */ ''}
+                    ${tweet.image_url ? `
+                        <div style="margin: 10px 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
+                            <img src="http://localhost:3001${tweet.image_url}" style="width: 100%; display: block;">
+                        </div>
+                    ` : ''}
+
+                    <div class="tweet-footer" style="display: flex; gap: 40px; color: var(--text-muted); font-size: 0.9rem; align-items: center;">
+                        <span class="btn-like" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center; gap: 5px; color: ${tweet.isLiked ? '#f91880' : 'inherit'}">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="${heartStroke}" fill="${heartFill}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            <span class="like-count">${tweet.likes || 0}</span>
+                        </span>
+                        <span class="btn-comment" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center; gap: 5px;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            <span class="comment-count">${parseInt(tweet.comments) || 0}</span>
+                        </span>
+                        <span class="btn-bookmark" data-id="${tweet.id}" style="cursor:pointer;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="${bookmarkStroke}" fill="${bookmarkFill}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        </span>
                     </div>
                 ` : ''}
     
