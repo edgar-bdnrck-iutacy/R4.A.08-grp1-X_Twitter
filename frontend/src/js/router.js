@@ -1,39 +1,43 @@
 import { api } from './api.js';
 import { initHome } from './controllers/home.js';
 import { initProfile } from './controllers/profile.js';
-// Ajout du contrôleur pour la recherche
 import { initSearch } from './controllers/search.js'; 
 
 const appContainer = document.getElementById('app-container');
 
-
-
-
 const navProfileLink = document.querySelector('a[href="#profile"]');
 if (navProfileLink) {
     navProfileLink.addEventListener('click', () => {
-        // ON SUPPRIME la cible pour forcer le chargement de NOTRE profil
         localStorage.removeItem('viewUserId');
         console.log("🧹 Navigation: viewUserId supprimé (retour au profil perso)");
     });
 }
+
+// --- GESTION DES CLICS SUR L'ACCUEIL ---
+const navHomeLinks = document.querySelectorAll('a[href="#home"]');
+navHomeLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        if (window.location.hash === '#home' || window.location.hash === '') {
+            e.preventDefault(); 
+            handleRouting(); 
+        }
+    });
+});
 
 // --- GESTION DE LA DÉCONNEXION ---
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('userId');
-        window.location.href = '/auth.html'; // Redirige vers la page de login
+        window.location.href = '/auth.html'; 
     });
 }
 
 // --- SYNC DU PROFIL DANS LA SIDEBAR ---
 async function loadSidebarProfile() {
-    // On récupère l'ID stocké, si rien n'est stocké on redirige
     const USER_ID = localStorage.getItem('userId');
 
     if (!USER_ID) {
-        // Si on n'est pas déjà sur auth.html, on y va
         if (!window.location.pathname.includes('auth.html')) {
             window.location.href = '/auth.html';
         }
@@ -68,13 +72,12 @@ async function loadPage(page) {
         const html = await response.text();
         appContainer.innerHTML = html;
 
-        // Branchement des différents contrôleurs selon la page
         if (page === 'home') {
             await initHome();
         } else if (page === 'profile') {
             await initProfile();
         } else if (page === 'search') {
-            await initSearch(); // Initialisation de la vue recherche
+            await initSearch(); 
         }
 
         updateActiveLink(page);

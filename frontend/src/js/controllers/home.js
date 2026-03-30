@@ -52,10 +52,8 @@ export async function initHome() {
     async function refreshFeed(mode = currentFeedMode) {
         currentFeedMode = mode;
         
-        // 1. Restore the feed tabs if they were hidden by a hashtag search
         feedTabs.forEach(tab => tab.style.display = '');
         
-        // 2. Remove the temporary hashtag title if it exists
         const hashtagTitle = document.getElementById('hashtag-search-title');
         if (hashtagTitle) hashtagTitle.remove();
 
@@ -100,11 +98,9 @@ export async function initHome() {
     }
 
     async function loadHashtagFeed(tag) {
-        // 1. Hide the normal feed tabs while viewing search results
         feedTabs.forEach(tab => tab.style.display = 'none');
 
-        // 2. Create a dedicated temporary title for the search to avoid breaking the DOM
-        const header = document.querySelector('.header');
+        const header = document.querySelector('.feed-header');
         if (header) {
             let hashtagTitle = document.getElementById('hashtag-search-title');
             if (!hashtagTitle) {
@@ -274,7 +270,6 @@ export async function initHome() {
                 if (ok) {
                     input.value = '';
                     delete selectedCommentFiles[postId];
-                    // On rafraîchit seulement l'UI du commentaire au lieu du feed complet
                     const comments = await api.getComments(postId);
                     renderCommentsUI(postId, comments, document.getElementById(`comments-${postId}`));
                 } else {
@@ -312,7 +307,6 @@ export async function initHome() {
                     fileInput.value = '';
                     previewContainer.style.display = 'none';
                     
-                    // On rafraîchit TOUT : les tweets et les tendances à droite
                     await refreshFeed(currentFeedMode);
                     await renderTrends(loadHashtagFeed);
                 }
