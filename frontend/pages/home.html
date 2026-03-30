@@ -1,6 +1,24 @@
 <div class="home-feed">
     <header class="feed-header">
         <h2>Accueil</h2>
+        <div id="home-feed-tabs" style="display: flex; border-top: 1px solid var(--border-color); margin-top: 12px;">
+            <button
+                id="tab-for-you"
+                class="home-feed-tab active"
+                data-feed="for-you"
+                style="flex: 1; padding: 14px 10px; background: transparent; color: white; border: none; border-bottom: 2px solid #1d9bf0; font-weight: bold; cursor: pointer;"
+            >
+                Pour vous
+            </button>
+            <button
+                id="tab-following"
+                class="home-feed-tab"
+                data-feed="following"
+                style="flex: 1; padding: 14px 10px; background: transparent; color: var(--text-muted); border: none; border-bottom: 2px solid transparent; font-weight: bold; cursor: pointer;"
+            >
+                Abonnements
+            </button>
+        </div>
     </header>
     <div class="compose-tweet" style="display: flex; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); width: 100%; box-sizing: border-box;">
     

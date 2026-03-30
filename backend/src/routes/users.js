@@ -171,25 +171,46 @@ router.get('/:id/stats', async (req, res) => {
 
 // --- ROUTE : S'abonner / Se désabonner ---
 router.post('/:id/follow', async (req, res) => {
-  const targetId = req.params.id;
-  const currentUserId = req.body.userId;
+    const targetId = Number(req.params.id);
+    const currentUserId = Number(req.body.userId);
   
-  try {
-      const check = await db.query('SELECT * FROM abonnements WHERE id_suiveur_utilisateur = $1 AND id_suivi_utilisateur = $2', [currentUserId, targetId]);
-      
-      if (check.rows.length > 0) {
-          // Déjà abonné -> On se désabonne
-          await db.query('DELETE FROM abonnements WHERE id_suiveur_utilisateur = $1 AND id_suivi_utilisateur = $2', [currentUserId, targetId]);
-          res.status(200).json({ isFollowing: false });
-      } else {
-          // Pas abonné -> On s'abonne
-          await db.query('INSERT INTO abonnements (id_suiveur_utilisateur, id_suivi_utilisateur) VALUES ($1, $2)', [currentUserId, targetId]);
-          res.status(200).json({ isFollowing: true });
-      }
-  } catch (error) { 
-      res.status(500).json({ error: "Erreur lors de l'abonnement" }); 
-  }
-});
+    try {
+        if (!Number.isInteger(targetId) || targetId <= 0) {
+            return res.status(400).json({ error: "Utilisateur cible invalide" });
+        }
+  
+        if (!Number.isInteger(currentUserId) || currentUserId <= 0) {
+            return res.status(400).json({ error: "Utilisateur courant invalide" });
+        }
+  
+        if (targetId === currentUserId) {
+            return res.status(400).json({ error: "Impossible de se suivre soi-même" });
+        }
+  
+        const check = await db.query(
+            'SELECT 1 FROM abonnements WHERE id_suiveur_utilisateur = $1 AND id_suivi_utilisateur = $2',
+            [currentUserId, targetId]
+        );
+  
+        if (check.rows.length > 0) {
+            await db.query(
+                'DELETE FROM abonnements WHERE id_suiveur_utilisateur = $1 AND id_suivi_utilisateur = $2',
+                [currentUserId, targetId]
+            );
+            return res.status(200).json({ isFollowing: false });
+        }
+  
+        await db.query(
+            'INSERT INTO abonnements (id_suiveur_utilisateur, id_suivi_utilisateur) VALUES ($1, $2)',
+            [currentUserId, targetId]
+        );
+  
+        return res.status(200).json({ isFollowing: true });
+    } catch (error) {
+        console.error("Erreur route follow :", error);
+        return res.status(500).json({ error: "Erreur lors de l'abonnement" });
+    }
+  });
 
 // --- ROUTE : Obtenir la liste des abonnés (Followers) ---
 router.get('/:id/followers', async (req, res) => {

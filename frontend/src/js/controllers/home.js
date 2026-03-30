@@ -18,9 +18,11 @@ export async function initHome() {
     const previewContainer = document.getElementById('image-preview-container');
     const previewImg = document.getElementById('image-preview');
     const removePreview = document.getElementById('remove-preview');
+    const feedTabs = document.querySelectorAll('.home-feed-tab');
     
     let selectedFile = null;
-    const selectedCommentFiles = {}; 
+    const selectedCommentFiles = {};
+    let currentFeedMode = 'for-you';
 
     if (uploadBtn) uploadBtn.onclick = () => fileInput.click();
 
@@ -47,13 +49,17 @@ export async function initHome() {
         };
     }
 
-    async function refreshFeed() {
+    async function refreshFeed(mode = currentFeedMode) {
+        currentFeedMode = mode;
         const titleElement = document.querySelector('.header h2');
         if (titleElement) titleElement.textContent = "Accueil";
 
-        const tweets = await api.getFeed();
+        const tweets = mode === 'following'
+            ? await api.getFollowingFeed()
+            : await api.getFeed();
+    
         const myId = localStorage.getItem('userId');
-        
+    
         if (myId) {
             try {
                 const myBookmarks = await api.getUserBookmarks(myId);
@@ -61,12 +67,31 @@ export async function initHome() {
                 tweets.forEach(tweet => {
                     tweet.isBookmarked = bookmarkedIds.includes(tweet.id);
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+            }
         }
-        
+    
         container.innerHTML = "";
+    
+        if (!tweets || tweets.length === 0) {
+            container.innerHTML = mode === 'following'
+                ? `<p style="text-align:center; padding:40px; color: var(--text-muted);">Aucun tweet des comptes suivis pour le moment.</p>`
+                : `<p style="text-align:center; padding:40px; color: var(--text-muted);">Aucun tweet à afficher.</p>`;
+            return;
+        }
+    
         renderTweets(tweets, container);
         tweets.forEach(t => api.viewPost(t.id));
+    }
+
+    function updateFeedTabs() {
+        feedTabs.forEach(tab => {
+            const isActive = tab.dataset.feed === currentFeedMode;
+            tab.classList.toggle('active', isActive);
+            tab.style.color = isActive ? 'white' : 'var(--text-muted)';
+            tab.style.borderBottom = isActive ? '2px solid #1d9bf0' : '2px solid transparent';
+        });
     }
 
     async function loadHashtagFeed(tag) {
@@ -76,7 +101,10 @@ export async function initHome() {
                 <span id="back-to-feed" style="cursor:pointer; margin-right:15px;">←</span>
                 Résultats pour #${tag.replace('#', '')}
             `;
-            document.getElementById('back-to-feed').onclick = () => refreshFeed();
+            document.getElementById('back-to-feed').onclick = () => {
+                updateFeedTabs();
+                refreshFeed(currentFeedMode);
+            };
         }
 
         container.innerHTML = `<p style="padding:20px; color:gray; text-align:center;">Recherche de #${tag}...</p>`;
@@ -90,8 +118,19 @@ export async function initHome() {
         }
     }
 
-    await refreshFeed();
+    updateFeedTabs();
+    await refreshFeed(currentFeedMode);
     await renderTrends(loadHashtagFeed);
+
+    feedTabs.forEach(tab => {
+        tab.onclick = async () => {
+            const mode = tab.dataset.feed;
+            currentFeedMode = mode;
+            updateFeedTabs();
+            container.innerHTML = `<p style="text-align:center; padding:40px;">Chargement...</p>`;
+            await refreshFeed(mode);
+        };
+    });
 
     container.addEventListener('click', async (e) => {
         // --- Hashtags cliquables dans le texte ---
@@ -127,7 +166,28 @@ export async function initHome() {
             return;
         }
 
-        // Like Commentaire
+        const repostBtn = e.target.closest('.btn-repost');
+        if (repostBtn) {
+            const postId = repostBtn.dataset.id;
+            const result = await api.repostPost(postId);
+
+            if (result) {
+                const counter = repostBtn.querySelector('.repost-count');
+                const svg = repostBtn.querySelector('.repost-icon');
+
+                if (counter) counter.textContent = result.reposts;
+                if (svg) {
+                    svg.setAttribute('fill', result.isReposted ? '#00ba7c' : 'none');
+                    svg.setAttribute('stroke', result.isReposted ? '#00ba7c' : 'currentColor');
+                }
+
+                repostBtn.style.color = result.isReposted ? '#00ba7c' : '';
+            }
+
+            return;
+        }
+
+        // --- Like Commentaire ---
         const likeComBtn = e.target.closest('.btn-like-comment');
         if (likeComBtn) {
             const comId = likeComBtn.dataset.id;
@@ -197,9 +257,12 @@ export async function initHome() {
                 if (ok) {
                     input.value = '';
                     delete selectedCommentFiles[postId];
+                    // On rafraîchit seulement l'UI du commentaire au lieu du feed complet
                     const comments = await api.getComments(postId);
                     renderCommentsUI(postId, comments, document.getElementById(`comments-${postId}`));
-                } else { submitCommentBtn.disabled = false; }
+                } else {
+                    submitCommentBtn.disabled = false;
+                }
             }
             return;
         }
@@ -233,7 +296,7 @@ export async function initHome() {
                     previewContainer.style.display = 'none';
                     
                     // On rafraîchit TOUT : les tweets et les tendances à droite
-                    await refreshFeed();
+                    await refreshFeed(currentFeedMode);
                     await renderTrends(loadHashtagFeed);
                 }
                 postBtn.disabled = false;
@@ -257,42 +320,63 @@ function renderTweets(tweets, container) {
         const heartStroke = tweet.isLiked ? 'none' : 'currentColor';
 
         return `
-            <div class="tweet-card" style="display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-color); width: 100%; box-sizing: border-box;">
-                <div class="tweet-avatar-col go-to-profile" data-id="${tweet.id_utilisateur}" style="flex-shrink: 0; cursor: pointer;">
-                    <img src="${profilePic}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
-                </div>
-                <div style="flex: 1; min-width: 0;">
-                    <div class="tweet-header go-to-profile" data-id="${tweet.id_utilisateur}" style="cursor: pointer;">
-                        <strong>${tweet.author_name}</strong> <span style="color: gray;">@${tweet.author}</span>
-                    </div>
-                    <p style="margin-bottom: 10px; word-wrap: break-word; white-space: pre-wrap;">${formatContent(tweet.content)}</p>
-                    
-                    ${tweet.image_url ? `
-                        <div style="margin: 10px 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
-                            <img src="http://localhost:3001${tweet.image_url}" style="width: 100%; display: block;">
-                        </div>
-                    ` : ''}
-
-                    <div class="tweet-footer" style="display: flex; justify-content: flex-start; gap: 40px; color: var(--text-muted); font-size: 0.9rem; align-items: center;">
-                        <span class="btn-comment" data-id="${tweet.id}" style="cursor:pointer; display:flex; align-items:center; gap:5px;">
-                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                            <span>${parseInt(tweet.comments) || 0}</span>
-                        </span>
-                        <span class="btn-like" data-id="${tweet.id}" style="cursor:pointer; display:flex; align-items:center; gap:5px; ${tweet.isLiked ? 'color:#f91880' : ''}">
-                            <svg class="heart-icon" viewBox="0 0 24 24" width="18" height="18" stroke="${heartStroke}" fill="${heartFill}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                            <span class="like-count">${tweet.likes || 0}</span>
-                        </span>
-                        <span style="display: flex; align-items: center; gap: 5px;">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>${tweet.nb_views_tweet || 0}</span>
-                        </span>
-                        <span class="btn-bookmark" data-id="${tweet.id}" style="cursor:pointer;">
-                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="${bookmarkStroke}" fill="${bookmarkFill}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-                        </span>
-                    </div>
-                    <div class="comments-section" id="comments-${tweet.id}" style="display: none; margin-top: 15px;"></div>
-                </div>
+        <div class="tweet-card" style="display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-color); width: 100%; box-sizing: border-box;">
+            <div class="tweet-avatar-col go-to-profile" data-id="${tweet.id_utilisateur}" style="flex-shrink: 0; cursor: pointer;">
+                <img src="${profilePic}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
             </div>
+            <div style="flex: 1; min-width: 0;">
+                ${tweet.isRepost ? `
+                    <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 6px;">
+                        🔁 ${tweet.reposted_by_name} a reposté
+                    </div>
+                ` : ''}
+    
+                <div class="tweet-header go-to-profile" data-id="${tweet.id_utilisateur}" style="cursor: pointer;">
+                    <strong>${tweet.author_name}</strong> <span style="color: gray;">@${tweet.author}</span>
+                </div>
+    
+                <p style="margin-bottom: 10px; word-wrap: break-word; white-space: pre-wrap;">${formatContent(tweet.content)}</p>
+                
+                ${tweet.image_url ? `
+                    <div style="margin: 10px 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
+                        <img src="http://localhost:3001${tweet.image_url}" style="width: 100%; display: block;">
+                    </div>
+                ` : ''}
+    
+                <div class="tweet-footer" style="display: flex; justify-content: flex-start; gap: 40px; color: var(--text-muted); font-size: 0.9rem; align-items: center;">
+                    <span class="btn-comment" data-id="${tweet.id}" style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                        <span>${parseInt(tweet.comments) || 0}</span>
+                    </span>
+    
+                    <span class="btn-repost" data-id="${tweet.id}" style="cursor:pointer; display:flex; align-items:center; gap:5px; ${tweet.isReposted ? 'color:#00ba7c' : ''}">
+                        <svg class="repost-icon" viewBox="0 0 24 24" width="18" height="18" stroke="${tweet.isReposted ? '#00ba7c' : 'currentColor'}" fill="${tweet.isReposted ? '#00ba7c' : 'none'}" stroke-width="2">
+                            <path d="M17 1l4 4-4 4"></path>
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                            <path d="M7 23l-4-4 4-4"></path>
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                        </svg>
+                        <span class="repost-count">${tweet.reposts || 0}</span>
+                    </span>
+    
+                    <span class="btn-like" data-id="${tweet.id}" style="cursor:pointer; display:flex; align-items:center; gap:5px; ${tweet.isLiked ? 'color:#f91880' : ''}">
+                        <svg class="heart-icon" viewBox="0 0 24 24" width="18" height="18" stroke="${heartStroke}" fill="${heartFill}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        <span class="like-count">${tweet.likes || 0}</span>
+                    </span>
+    
+                    <span style="display: flex; align-items: center; gap: 5px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>${tweet.nb_views_tweet || 0}</span>
+                    </span>
+    
+                    <span class="btn-bookmark" data-id="${tweet.id}" style="cursor:pointer;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="${bookmarkStroke}" fill="${bookmarkFill}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                    </span>
+                </div>
+    
+                <div class="comments-section" id="comments-${tweet.id}" style="display: none; margin-top: 15px;"></div>
+            </div>
+        </div>
         `;
     }).join('');
 }

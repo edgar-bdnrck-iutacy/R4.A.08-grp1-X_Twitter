@@ -6,9 +6,18 @@ const path = require('path');
 
 // --- IMPORTS DES SERVICES (Corrigé) ---
 const { 
-    getAllPosts, createPost, toggleLike, getPostsByUserId, 
-    getTrendingHashtags, getCommentsByPostId, addComment, getPostsByHashtag,
-    incrementView, toggleCommentLike
+    getAllPosts,
+    getFollowingFeed,
+    createPost,
+    toggleLike,
+    toggleRepost,
+    getPostsByUserId,
+    getTrendingHashtags,
+    getCommentsByPostId,
+    addComment,
+    getPostsByHashtag,
+    incrementView,
+    toggleCommentLike
 } = require('../services/postsService');
 
 // --- CONFIGURATION MULTER ---
@@ -34,10 +43,26 @@ const uploadComment = multer({ storage: commentStorage });
 
 router.get("/", async (req, res) => {
     try {
-        const posts = await getAllPosts();
+        const currentUserId = req.query.userId || null;
+        const posts = await getAllPosts(currentUserId);
         res.status(200).json(posts);
     } catch (error) {
         res.status(500).json({ error: "Erreur réseau" });
+    }
+});
+
+router.get("/following", async (req, res) => {
+    try {
+        const currentUserId = req.query.userId || null;
+
+        if (!currentUserId) {
+            return res.status(400).json({ error: "userId manquant" });
+        }
+
+        const posts = await getFollowingFeed(currentUserId);
+        res.status(200).json(posts);
+    } catch (error) {
+        res.status(500).json({ error: "Erreur flux abonnements" });
     }
 });
 
@@ -70,7 +95,8 @@ router.post("/comments/:id/like", async (req, res) => {
 
 router.get("/user/:id", async (req, res) => {
     try {
-        const posts = await getPostsByUserId(req.params.id);
+        const currentUserId = req.query.userId || null;
+        const posts = await getPostsByUserId(req.params.id, currentUserId);
         res.json(posts);
     } catch (error) {
         res.status(500).json({ error: "Erreur lors de la récupération des tweets" });
@@ -122,6 +148,15 @@ router.post("/:id/like", async (req, res) => {
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: "Erreur like" });
+    }
+});
+
+router.post("/:id/repost", async (req, res) => {
+    try {
+        const result = await toggleRepost(req.params.id, req.body.userId);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: "Erreur repost" });
     }
 });
 
