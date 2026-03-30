@@ -57,6 +57,15 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const username = document.getElementById('reg-username').value;
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
+    const passwordError = document.getElementById('password-error'); 
+
+    const passwordRegex = /^(?=.*[0-9]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+        passwordError.style.display = 'block';
+        return; 
+    } else {
+        passwordError.style.display = 'none';
+    }
 
     try {
         const response = await fetch('http://localhost:3001/api/auth/register', { 
@@ -68,7 +77,6 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         const data = await response.json();
 
         if (data.success) {
-            // Si c'est réussi, on connecte l'utilisateur et on redirige
             localStorage.setItem('userId', data.user.id);
             window.location.href = '../index.html';
         } else {

@@ -49,22 +49,20 @@ export async function initHome() {
 
     async function refreshFeed() {
         const tweets = await api.getFeed();
-        const myId = localStorage.getItem('userId');
+        // const myId = localStorage.getItem('userId');
         
-        if (myId) {
-            try {
-                const myBookmarks = await api.getUserBookmarks(myId);
-                const bookmarkedIds = myBookmarks.map(b => b.id);
-                tweets.forEach(tweet => {
-                    tweet.isBookmarked = bookmarkedIds.includes(tweet.id);
-                });
-            } catch (err) { console.error(err); }
-        }
+        // if (myId) {
+        //     try {
+        //         const myBookmarks = await api.getUserBookmarks(myId);
+        //         const bookmarkedIds = myBookmarks.map(b => b.id);
+        //         tweets.forEach(tweet => {
+        //             tweet.isBookmarked = bookmarkedIds.includes(tweet.id);
+        //         });
+        //     } catch (err) { console.error(err); }
+        // }
         
         container.innerHTML = "";
         renderTweets(tweets, container);
-
-        // --- NOUVEAU : Incrémenter les vues pour chaque tweet affiché ---
         tweets.forEach(t => api.viewPost(t.id));
     }
 

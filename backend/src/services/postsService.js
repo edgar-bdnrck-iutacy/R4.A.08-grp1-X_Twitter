@@ -3,7 +3,7 @@ const db = require("../db");
 /**
  * Récupère tous les posts pour le flux général
  */
-async function getAllPosts() {
+async function getAllPosts(currentUserId = null) {
   const { rows } = await db.query(`
     SELECT
       t.id_tweet AS id,
@@ -14,15 +14,20 @@ async function getAllPosts() {
       t.description_tweet AS content,
       t.image_url,
       t.nb_likes_tweet AS likes,
-      t.nb_views_tweet,                             -- CORRIGÉ : On récupère les vues
+      t.nb_views_tweet,
       (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,          
-      t.date_publication_tweet AS created_at
+      t.date_publication_tweet AS created_at,
+      -- Vérifie si l'utilisateur actuel a liké ce tweet
+      EXISTS(SELECT 1 FROM likes l WHERE l.id_tweet = t.id_tweet AND l.id_utilisateur = $1) AS "isLiked",
+      -- NOUVEAU : Vérifie si l'utilisateur actuel a mis ce tweet dans ses signets
+      EXISTS(SELECT 1 FROM signets s WHERE s.id_tweet = t.id_tweet AND s.id_utilisateur = $1) AS "isBookmarked"
     FROM tweet t
     JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
     ORDER BY t.date_publication_tweet DESC, t.id_tweet DESC
-  `);
+  `, [currentUserId]);
   return rows;
 }
+
 
 /**
  * Créer un nouveau post
@@ -92,7 +97,7 @@ async function toggleLike(tweetId, userId) {
 /**
  * Posts d'un utilisateur
  */
-async function getPostsByUserId(userId) {
+async function getPostsByUserId(userId, currentUserId = null) {
   const { rows } = await db.query(`
     SELECT 
       t.id_tweet AS id, 
@@ -103,14 +108,18 @@ async function getPostsByUserId(userId) {
       t.description_tweet AS content, 
       t.image_url,
       t.nb_likes_tweet AS likes, 
-      t.nb_views_tweet,                             -- CORRIGÉ
+      t.nb_views_tweet,
       (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,           
-      t.date_publication_tweet AS created_at
+      t.date_publication_tweet AS created_at,
+      -- Vérifie si l'utilisateur actuel a liké ce tweet
+      EXISTS(SELECT 1 FROM likes l WHERE l.id_tweet = t.id_tweet AND l.id_utilisateur = $2) AS "isLiked",
+      -- NOUVEAU : Vérifie si l'utilisateur actuel a mis ce tweet dans ses signets
+      EXISTS(SELECT 1 FROM signets s WHERE s.id_tweet = t.id_tweet AND s.id_utilisateur = $2) AS "isBookmarked"
     FROM tweet t
     JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
     WHERE u.id_utilisateur = $1
     ORDER BY t.date_publication_tweet DESC;
-  `, [userId]);
+  `, [userId, currentUserId]);
   return rows;
 }
 

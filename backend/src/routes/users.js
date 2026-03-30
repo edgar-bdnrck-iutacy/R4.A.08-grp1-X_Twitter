@@ -103,55 +103,84 @@ router.put('/:id', async (req, res) => {
 
 
 router.get('/:id/likes', async (req, res) => {
-  try {
-      const query = `
-          SELECT 
-              t.id_tweet AS id,
-              t.description_tweet AS content,
-              t.nb_likes_tweet AS likes,
-              (SELECT COUNT(*) FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
-              true AS "isLiked",
-              u.nom_utilisateur AS author_name, 
-              u.username_utilisateur AS author, 
-              u.photo_profil_utilisateur AS author_photo
-          FROM tweet t
-          JOIN likes l ON t.id_tweet = l.id_tweet
-          JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
-          WHERE l.id_utilisateur = $1
-          ORDER BY l.date_like DESC;
-      `;
-      const result = await db.query(query, [req.params.id]);
-      res.status(200).json(result.rows);
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+    try {
+        const query = `
+            SELECT 
+                t.id_tweet AS id,
+                u.id_utilisateur AS id_utilisateur,
+                t.description_tweet AS content,
+                t.image_url AS image_url,  
+                t.nb_likes_tweet AS likes,
+                t.nb_views_tweet,
+                (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
+                true AS "isLiked",
+                u.nom_utilisateur AS author_name, 
+                u.username_utilisateur AS author, 
+                u.photo_profil_utilisateur AS author_photo,
+                t.date_publication_tweet AS created_at
+            FROM tweet t
+            JOIN likes l ON t.id_tweet = l.id_tweet
+            JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+            WHERE l.id_utilisateur = $1
+            ORDER BY l.date_like DESC;
+        `;
+        const result = await db.query(query, [req.params.id]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
+
 // --- ROUTE : Réponses de l'utilisateur ---
+// --- ROUTE : Réponses de l'utilisateur (Posts + Commentaires) ---
 router.get('/:id/replies', async (req, res) => {
-  try {
-      const query = `
-          SELECT 
-              c.id_commentaire AS id, 
-              c.description_commentaire AS content, 
-              c.nb_likes_commentaire AS likes,
-              0 AS comments,
-              false AS "isLiked",
-              u.nom_utilisateur AS author_name, 
-              u.username_utilisateur AS author, 
-              u.photo_profil_utilisateur AS author_photo
-          FROM commentaires c
-          JOIN utilisateur u ON c.id_utilisateur = u.id_utilisateur
-          WHERE c.id_utilisateur = $1
-          ORDER BY c.date_publication_commentaire DESC;
-      `;
-      const result = await db.query(query, [req.params.id]);
-      res.status(200).json(result.rows);
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+    try {
+        const query = `
+            -- 1. Récupérer les Tweets de l'utilisateur
+            SELECT 
+                t.id_tweet AS id, 
+                t.description_tweet AS content, 
+                t.image_url AS image_url,
+                t.nb_likes_tweet AS likes,
+                (SELECT COUNT(*)::int FROM commentaires c2 WHERE c2.id_tweet = t.id_tweet) AS comments,
+                false AS "isLiked",
+                u.nom_utilisateur AS author_name, 
+                u.username_utilisateur AS author, 
+                u.photo_profil_utilisateur AS author_photo,
+                t.date_publication_tweet AS created_at
+            FROM tweet t
+            JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+            WHERE t.id_utilisateur = $1
+  
+            UNION ALL
+  
+            -- 2. Récupérer les Commentaires de l'utilisateur
+            SELECT 
+                c.id_commentaire AS id, 
+                c.description_commentaire AS content, 
+                c.image_commentaire AS image_url,
+                c.nb_likes_commentaire AS likes,
+                0::int AS comments,
+                false AS "isLiked",
+                u.nom_utilisateur AS author_name, 
+                u.username_utilisateur AS author, 
+                u.photo_profil_utilisateur AS author_photo,
+                c.date_publication_commentaire AS created_at
+            FROM commentaires c
+            JOIN utilisateur u ON c.id_utilisateur = u.id_utilisateur
+            WHERE c.id_utilisateur = $1
+  
+            -- 3. Trier le tout du plus récent au plus ancien
+            ORDER BY created_at DESC;
+        `;
+        const result = await db.query(query, [req.params.id]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
 
 
 // --- ROUTE : Obtenir les statistiques d'abonnement ---

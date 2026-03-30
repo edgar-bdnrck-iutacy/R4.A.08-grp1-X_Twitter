@@ -58,7 +58,7 @@ export async function initProfile() {
         // Mise à jour de l'UI
         if (headerName) headerName.textContent = name;
         if (infoName) infoName.textContent = name;
-        if (handleElement) handleElement.textContent = `@${handle}`;
+        if (handleElement) handleElement.textContent = `${handle}`;
         if (bioElement) bioElement.textContent = userData.bio_utilisateur || userData.bio || "Pas encore de bio.";
         
         if (joinDateElement && userData.date_inscription) {
@@ -305,6 +305,14 @@ function renderUserTweets(tweets, container, TARGET_ID) {
                         <span style="color: var(--text-muted); margin-left: 5px;">@${tweet.author}</span>
                     </div>
                     <p style="color: var(--text-main); margin-bottom: 10px; line-height: 1.4; overflow-wrap: break-word;">${tweet.content}</p>
+                    
+                    ${/* NOUVEAU: Ajout de l'affichage de l'image du tweet */ ''}
+                    ${tweet.image_url ? `
+                        <div style="margin: 10px 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
+                            <img src="http://localhost:3001${tweet.image_url}" style="width: 100%; display: block;">
+                        </div>
+                    ` : ''}
+
                     <div class="tweet-footer" style="display: flex; gap: 40px; color: var(--text-muted); font-size: 0.9rem; align-items: center;">
                         <span class="btn-like" data-id="${tweet.id}" style="cursor:pointer; display: flex; align-items: center; gap: 5px; color: ${tweet.isLiked ? '#f91880' : 'inherit'}">
                             <svg viewBox="0 0 24 24" width="18" height="18" stroke="${heartStroke}" fill="${heartFill}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>

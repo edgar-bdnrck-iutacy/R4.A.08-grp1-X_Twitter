@@ -34,7 +34,8 @@ const uploadComment = multer({ storage: commentStorage });
 
 router.get("/", async (req, res) => {
     try {
-        const posts = await getAllPosts();
+        const userId = req.query.userId || null; 
+        const posts = await getAllPosts(userId);
         res.status(200).json(posts);
     } catch (error) {
         res.status(500).json({ error: "Erreur réseau" });
@@ -65,7 +66,8 @@ router.post("/comments/:id/like", async (req, res) => {
 
 router.get("/user/:id", async (req, res) => {
     try {
-        const posts = await getPostsByUserId(req.params.id);
+        const currentUserId = req.query.userId || null; 
+        const posts = await getPostsByUserId(req.params.id, currentUserId); 
         res.json(posts);
     } catch (error) {
         res.status(500).json({ error: "Erreur lors de la récupération des tweets" });
