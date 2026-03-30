@@ -241,3 +241,21 @@ INSERT INTO signets (id_utilisateur, id_tweet)
 VALUES 
 (1, 2), (2, 3), (4, 8), 
 (5, 6), (7, 8), (9, 12), (11, 11);
+
+
+
+
+ALTER TABLE tweet ADD COLUMN image_url TEXT;
+
+
+-- S'assurer que la colonne vues existe
+ALTER TABLE tweet ADD COLUMN IF NOT EXISTS nb_views_tweet INT DEFAULT 0;
+
+-- Créer la table pour les likes de commentaires (Indispensable !)
+CREATE TABLE IF NOT EXISTS likes_commentaires (
+    id_utilisateur INT NOT NULL,
+    id_commentaire INT NOT NULL,
+    PRIMARY KEY (id_utilisateur, id_commentaire),
+    CONSTRAINT fk_likes_com_user FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id_utilisateur) ON DELETE CASCADE,
+    CONSTRAINT fk_likes_com_item FOREIGN KEY (id_commentaire) REFERENCES commentaires(id_commentaire) ON DELETE CASCADE
+);
