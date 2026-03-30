@@ -96,6 +96,24 @@ export const api = {
             return null;
         }
     },
+    
+    async repostPost(postId) {
+        const userId = this.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/${postId}/repost`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+    
+            if (!response.ok) throw new Error("Impossible de repost");
+            return await response.json();
+        } catch (error) {
+            console.error("Erreur repostPost:", error);
+            return null;
+        }
+    },
+
 
     // Fonction pour ajouter un signet
     async bookmarkPost(postId) {

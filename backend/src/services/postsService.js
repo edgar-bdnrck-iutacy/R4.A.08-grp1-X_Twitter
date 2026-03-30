@@ -3,24 +3,77 @@ const db = require("../db");
 /**
  * Récupère tous les posts pour le flux général
  */
-async function getAllPosts() {
+async function getAllPosts(currentUserId = null) {
   const { rows } = await db.query(`
-    SELECT
-      t.id_tweet AS id,
-      u.id_utilisateur AS id_utilisateur,
-      u.username_utilisateur AS author,
-      u.nom_utilisateur AS author_name,
-      u.photo_profil_utilisateur AS author_photo,
-      t.description_tweet AS content,
-      t.image_url,
-      t.nb_likes_tweet AS likes,
-      t.nb_views_tweet,                             -- CORRIGÉ : On récupère les vues
-      (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,          
-      t.date_publication_tweet AS created_at
-    FROM tweet t
-    JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
-    ORDER BY t.date_publication_tweet DESC, t.id_tweet DESC
-  `);
+    SELECT *
+    FROM (
+      SELECT
+        t.id_tweet AS id,
+        u.id_utilisateur AS id_utilisateur,
+        u.username_utilisateur AS author,
+        u.nom_utilisateur AS author_name,
+        u.photo_profil_utilisateur AS author_photo,
+        t.description_tweet AS content,
+        t.image_url,
+        t.nb_likes_tweet AS likes,
+        t.nb_reposts_tweet AS reposts,
+        t.nb_views_tweet,
+        (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
+        t.date_publication_tweet AS created_at,
+        FALSE AS "isRepost",
+        NULL::INT AS reposted_by_id,
+        NULL::VARCHAR AS reposted_by_username,
+        NULL::VARCHAR AS reposted_by_name,
+        EXISTS(
+          SELECT 1
+          FROM likes l
+          WHERE l.id_utilisateur = $1 AND l.id_tweet = t.id_tweet
+        ) AS "isLiked",
+        EXISTS(
+          SELECT 1
+          FROM reposts r2
+          WHERE r2.id_utilisateur = $1 AND r2.id_tweet = t.id_tweet
+        ) AS "isReposted"
+      FROM tweet t
+      JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+
+      UNION ALL
+
+      SELECT
+        t.id_tweet AS id,
+        u.id_utilisateur AS id_utilisateur,
+        u.username_utilisateur AS author,
+        u.nom_utilisateur AS author_name,
+        u.photo_profil_utilisateur AS author_photo,
+        t.description_tweet AS content,
+        t.image_url,
+        t.nb_likes_tweet AS likes,
+        t.nb_reposts_tweet AS reposts,
+        t.nb_views_tweet,
+        (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
+        r.date_repost AS created_at,
+        TRUE AS "isRepost",
+        ru.id_utilisateur AS reposted_by_id,
+        ru.username_utilisateur AS reposted_by_username,
+        ru.nom_utilisateur AS reposted_by_name,
+        EXISTS(
+          SELECT 1
+          FROM likes l
+          WHERE l.id_utilisateur = $1 AND l.id_tweet = t.id_tweet
+        ) AS "isLiked",
+        EXISTS(
+          SELECT 1
+          FROM reposts r2
+          WHERE r2.id_utilisateur = $1 AND r2.id_tweet = t.id_tweet
+        ) AS "isReposted"
+      FROM reposts r
+      JOIN tweet t ON t.id_tweet = r.id_tweet
+      JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+      JOIN utilisateur ru ON ru.id_utilisateur = r.id_utilisateur
+    ) feed
+    ORDER BY created_at DESC, id DESC
+  `, [currentUserId]);
+
   return rows;
 }
 
@@ -89,28 +142,126 @@ async function toggleLike(tweetId, userId) {
   return { id: tweetId, likes: rows[0].likes, isLiked: !alreadyLiked };
 }
 
+async function toggleRepost(tweetId, userId) {
+  const check = await db.query(
+    `SELECT * FROM reposts WHERE id_utilisateur = $1 AND id_tweet = $2`,
+    [userId, tweetId]
+  );
+
+  const alreadyReposted = check.rows.length > 0;
+
+  if (alreadyReposted) {
+    await db.query(
+      `DELETE FROM reposts WHERE id_utilisateur = $1 AND id_tweet = $2`,
+      [userId, tweetId]
+    );
+    await db.query(
+      `UPDATE tweet
+       SET nb_reposts_tweet = GREATEST(nb_reposts_tweet - 1, 0)
+       WHERE id_tweet = $1`,
+      [tweetId]
+    );
+  } else {
+    await db.query(
+      `INSERT INTO reposts (id_utilisateur, id_tweet) VALUES ($1, $2)`,
+      [userId, tweetId]
+    );
+    await db.query(
+      `UPDATE tweet
+       SET nb_reposts_tweet = nb_reposts_tweet + 1
+       WHERE id_tweet = $1`,
+      [tweetId]
+    );
+  }
+
+  const { rows } = await db.query(
+    `SELECT nb_reposts_tweet AS reposts FROM tweet WHERE id_tweet = $1`,
+    [tweetId]
+  );
+
+  return {
+    id: tweetId,
+    reposts: rows[0].reposts,
+    isReposted: !alreadyReposted
+  };
+}
+
 /**
  * Posts d'un utilisateur
  */
-async function getPostsByUserId(userId) {
+async function getPostsByUserId(userId, currentUserId = null) {
   const { rows } = await db.query(`
-    SELECT 
-      t.id_tweet AS id, 
-      u.id_utilisateur AS id_utilisateur,
-      u.username_utilisateur AS author,
-      u.nom_utilisateur AS author_name,
-      u.photo_profil_utilisateur AS author_photo,
-      t.description_tweet AS content, 
-      t.image_url,
-      t.nb_likes_tweet AS likes, 
-      t.nb_views_tweet,                             -- CORRIGÉ
-      (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,           
-      t.date_publication_tweet AS created_at
-    FROM tweet t
-    JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
-    WHERE u.id_utilisateur = $1
-    ORDER BY t.date_publication_tweet DESC;
-  `, [userId]);
+    SELECT *
+    FROM (
+      SELECT
+        t.id_tweet AS id,
+        u.id_utilisateur AS id_utilisateur,
+        u.username_utilisateur AS author,
+        u.nom_utilisateur AS author_name,
+        u.photo_profil_utilisateur AS author_photo,
+        t.description_tweet AS content,
+        t.image_url,
+        t.nb_likes_tweet AS likes,
+        t.nb_reposts_tweet AS reposts,
+        t.nb_views_tweet,
+        (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
+        t.date_publication_tweet AS created_at,
+        FALSE AS "isRepost",
+        NULL::INT AS reposted_by_id,
+        NULL::VARCHAR AS reposted_by_username,
+        NULL::VARCHAR AS reposted_by_name,
+        EXISTS(
+          SELECT 1
+          FROM likes l
+          WHERE l.id_utilisateur = $2 AND l.id_tweet = t.id_tweet
+        ) AS "isLiked",
+        EXISTS(
+          SELECT 1
+          FROM reposts r2
+          WHERE r2.id_utilisateur = $2 AND r2.id_tweet = t.id_tweet
+        ) AS "isReposted"
+      FROM tweet t
+      JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+      WHERE t.id_utilisateur = $1
+
+      UNION ALL
+
+      SELECT
+        t.id_tweet AS id,
+        u.id_utilisateur AS id_utilisateur,
+        u.username_utilisateur AS author,
+        u.nom_utilisateur AS author_name,
+        u.photo_profil_utilisateur AS author_photo,
+        t.description_tweet AS content,
+        t.image_url,
+        t.nb_likes_tweet AS likes,
+        t.nb_reposts_tweet AS reposts,
+        t.nb_views_tweet,
+        (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
+        r.date_repost AS created_at,
+        TRUE AS "isRepost",
+        ru.id_utilisateur AS reposted_by_id,
+        ru.username_utilisateur AS reposted_by_username,
+        ru.nom_utilisateur AS reposted_by_name,
+        EXISTS(
+          SELECT 1
+          FROM likes l
+          WHERE l.id_utilisateur = $2 AND l.id_tweet = t.id_tweet
+        ) AS "isLiked",
+        EXISTS(
+          SELECT 1
+          FROM reposts r2
+          WHERE r2.id_utilisateur = $2 AND r2.id_tweet = t.id_tweet
+        ) AS "isReposted"
+      FROM reposts r
+      JOIN tweet t ON t.id_tweet = r.id_tweet
+      JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+      JOIN utilisateur ru ON ru.id_utilisateur = r.id_utilisateur
+      WHERE r.id_utilisateur = $1
+    ) profile_feed
+    ORDER BY created_at DESC, id DESC
+  `, [userId, currentUserId]);
+
   return rows;
 }
 
@@ -215,6 +366,7 @@ module.exports = {
   getAllPosts,
   createPost,
   toggleLike,
+  toggleRepost,
   getPostsByUserId,
   getTrendingHashtags,
   getCommentsByPostId,
