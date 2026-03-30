@@ -36,16 +36,27 @@ async function createPost(userId, content, imageUrl = null) {
 
   const newTweetId = insertResult.rows[0].id_tweet;
 
-  // Gestion Hashtags...
+// --- GESTION HASHTAGS (Nettoyée) ---
   const hashtags = content.match(/#[a-zA-Z0-9_]+/g);
   if (hashtags) {
       for (let tag of hashtags) {
-          const nomHashtag = tag.substring(1); 
-          let tagResult = await db.query(`SELECT id_hashtag FROM hashtag WHERE nom_hashtag = $1`, [nomHashtag]);
-          let tagId = tagResult.rows.length === 0 
-            ? (await db.query(`INSERT INTO hashtag (nom_hashtag) VALUES ($1) RETURNING id_hashtag`, [nomHashtag])).rows[0].id_hashtag
-            : tagResult.rows[0].id_hashtag;
-          await db.query(`INSERT INTO contient (id_tweet, id_hashtag) VALUES ($1, $2)`, [newTweetId, tagId]);
+          const nomHashtag = tag.substring(1).toLowerCase(); // On met tout en minuscule pour la cohérence
+          
+          // On insère le hashtag s'il n'existe pas encore
+          await db.query(
+              `INSERT INTO hashtag (nom_hashtag) VALUES ($1) ON CONFLICT (nom_hashtag) DO NOTHING`, 
+              [nomHashtag]
+          );
+
+          // On récupère l'id (nécessaire car le ON CONFLICT ne renvoie rien s'il existe déjà)
+          const tagResult = await db.query(`SELECT id_hashtag FROM hashtag WHERE nom_hashtag = $1`, [nomHashtag]);
+          const tagId = tagResult.rows[0].id_hashtag;
+
+          // On fait le lien avec le tweet
+          await db.query(
+              `INSERT INTO contient (id_tweet, id_hashtag) VALUES ($1, $2) ON CONFLICT DO NOTHING`, 
+              [newTweetId, tagId]
+          );
       }
   }
 
