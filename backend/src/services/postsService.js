@@ -17,14 +17,12 @@ async function getAllPosts(currentUserId = null) {
       t.nb_views_tweet,
       (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,          
       t.date_publication_tweet AS created_at,
-      -- Vérifie si l'utilisateur actuel a liké ce tweet
-      EXISTS(SELECT 1 FROM likes l WHERE l.id_tweet = t.id_tweet AND l.id_utilisateur = $1) AS "isLiked",
-      -- NOUVEAU : Vérifie si l'utilisateur actuel a mis ce tweet dans ses signets
-      EXISTS(SELECT 1 FROM signets s WHERE s.id_tweet = t.id_tweet AND s.id_utilisateur = $1) AS "isBookmarked"
+      -- NOUVEAU : Vérifie si l'utilisateur actuel a liké ce tweet
+      EXISTS(SELECT 1 FROM likes l WHERE l.id_tweet = t.id_tweet AND l.id_utilisateur = $1) AS "isLiked"
     FROM tweet t
     JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
     ORDER BY t.date_publication_tweet DESC, t.id_tweet DESC
-  `, [currentUserId]);
+  `, [currentUserId]); // <-- On passe l'ID ici
   return rows;
 }
 
