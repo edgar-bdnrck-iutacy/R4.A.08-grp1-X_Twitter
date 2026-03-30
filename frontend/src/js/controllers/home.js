@@ -18,9 +18,11 @@ export async function initHome() {
     const previewContainer = document.getElementById('image-preview-container');
     const previewImg = document.getElementById('image-preview');
     const removePreview = document.getElementById('remove-preview');
+    const feedTabs = document.querySelectorAll('.home-feed-tab');
     
     let selectedFile = null;
-    const selectedCommentFiles = {}; // Stockage des images pour les coms
+    const selectedCommentFiles = {};
+    let currentFeedMode = 'for-you';
 
     if (uploadBtn) uploadBtn.onclick = () => fileInput.click();
 
@@ -47,10 +49,15 @@ export async function initHome() {
         };
     }
 
-    async function refreshFeed() {
-        const tweets = await api.getFeed();
+    async function refreshFeed(mode = currentFeedMode) {
+        currentFeedMode = mode;
+    
+        const tweets = mode === 'following'
+            ? await api.getFollowingFeed()
+            : await api.getFeed();
+    
         const myId = localStorage.getItem('userId');
-        
+    
         if (myId) {
             try {
                 const myBookmarks = await api.getUserBookmarks(myId);
@@ -58,18 +65,47 @@ export async function initHome() {
                 tweets.forEach(tweet => {
                     tweet.isBookmarked = bookmarkedIds.includes(tweet.id);
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+            }
         }
-        
+    
         container.innerHTML = "";
+    
+        if (!tweets || tweets.length === 0) {
+            container.innerHTML = mode === 'following'
+                ? `<p style="text-align:center; padding:40px; color: var(--text-muted);">Aucun tweet des comptes suivis pour le moment.</p>`
+                : `<p style="text-align:center; padding:40px; color: var(--text-muted);">Aucun tweet à afficher.</p>`;
+            return;
+        }
+    
         renderTweets(tweets, container);
-
-        // --- NOUVEAU : Incrémenter les vues pour chaque tweet affiché ---
         tweets.forEach(t => api.viewPost(t.id));
     }
 
-    await refreshFeed();
+    function updateFeedTabs() {
+        feedTabs.forEach(tab => {
+            const isActive = tab.dataset.feed === currentFeedMode;
+            tab.classList.toggle('active', isActive);
+            tab.style.color = isActive ? 'white' : 'var(--text-muted)';
+            tab.style.borderBottom = isActive ? '2px solid #1d9bf0' : '2px solid transparent';
+        });
+    }
+
+    updateFeedTabs();
+    await refreshFeed('for-you');
     await renderTrends();
+
+    feedTabs.forEach(tab => {
+        tab.onclick = async () => {
+            const mode = tab.dataset.feed;
+            currentFeedMode = mode;
+            updateFeedTabs();
+            container.innerHTML = `<p style="text-align:center; padding:40px;">Chargement...</p>`;
+            await refreshFeed(mode);
+            updateFeedTabs();
+        };
+    });
 
     container.addEventListener('click', async (e) => {
         // Navigation Profil
@@ -192,8 +228,10 @@ export async function initHome() {
                 if (ok) {
                     input.value = '';
                     delete selectedCommentFiles[postId];
-                    await refreshFeed();
-                } else { submitCommentBtn.disabled = false; }
+                    await refreshFeed(currentFeedMode);
+                } else {
+                    submitCommentBtn.disabled = false;
+                }
             }
             return;
         }
@@ -225,7 +263,7 @@ export async function initHome() {
                     selectedFile = null;
                     fileInput.value = '';
                     previewContainer.style.display = 'none';
-                    await refreshFeed();
+                    await refreshFeed(currentFeedMode);
                 }
                 postBtn.disabled = false;
             }

@@ -77,6 +77,47 @@ async function getAllPosts(currentUserId = null) {
   return rows;
 }
 
+async function getFollowingFeed(currentUserId) {
+  const { rows } = await db.query(`
+    SELECT
+      t.id_tweet AS id,
+      u.id_utilisateur AS id_utilisateur,
+      u.username_utilisateur AS author,
+      u.nom_utilisateur AS author_name,
+      u.photo_profil_utilisateur AS author_photo,
+      t.description_tweet AS content,
+      t.image_url,
+      t.nb_likes_tweet AS likes,
+      t.nb_reposts_tweet AS reposts,
+      t.nb_views_tweet,
+      (SELECT COUNT(*)::int FROM commentaires c WHERE c.id_tweet = t.id_tweet) AS comments,
+      t.date_publication_tweet AS created_at,
+      FALSE AS "isRepost",
+      NULL::INT AS reposted_by_id,
+      NULL::VARCHAR AS reposted_by_username,
+      NULL::VARCHAR AS reposted_by_name,
+      EXISTS(
+        SELECT 1
+        FROM likes l
+        WHERE l.id_utilisateur = $1
+          AND l.id_tweet = t.id_tweet
+      ) AS "isLiked",
+      EXISTS(
+        SELECT 1
+        FROM reposts r
+        WHERE r.id_utilisateur = $1
+          AND r.id_tweet = t.id_tweet
+      ) AS "isReposted"
+    FROM tweet t
+    JOIN utilisateur u ON t.id_utilisateur = u.id_utilisateur
+    JOIN abonnements a ON a.id_suivi_utilisateur = u.id_utilisateur
+    WHERE a.id_suiveur_utilisateur = $1
+    ORDER BY t.date_publication_tweet DESC, t.id_tweet DESC
+  `, [currentUserId]);
+
+  return rows;
+}
+
 /**
  * Créer un nouveau post
  */
@@ -364,6 +405,7 @@ async function toggleCommentLike(commentId, userId) {
 
 module.exports = {
   getAllPosts,
+  getFollowingFeed,
   createPost,
   toggleLike,
   toggleRepost,

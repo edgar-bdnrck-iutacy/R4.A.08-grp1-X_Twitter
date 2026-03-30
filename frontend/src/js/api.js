@@ -23,7 +23,21 @@ export const api = {
         }
     },
 
-
+    async getFollowingFeed() {
+        const userId = this.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/following?userId=${userId}`);
+            if (!response.ok) throw new Error("Erreur flux abonnements");
+            const posts = await response.json();
+            return posts.map(post => ({
+                ...post,
+                handle: `@${post.author}`
+            }));
+        } catch (error) {
+            console.error("Erreur getFollowingFeed:", error);
+            return [];
+        }
+    },
 
     async createPost(content, imageFile = null) {
         const userId = this.getCurrentUserId(); 
@@ -96,7 +110,7 @@ export const api = {
             return null;
         }
     },
-    
+
     async repostPost(postId) {
         const userId = this.getCurrentUserId();
         try {
@@ -275,12 +289,19 @@ export const api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId })
             });
+    
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("Erreur toggleFollow:", res.status, text);
+                return null;
+            }
+    
             return await res.json();
-        } catch (e) { 
-            return null; 
+        } catch (e) {
+            console.error("Erreur réseau toggleFollow:", e);
+            return null;
         }
     },
-
 
     async searchUsers(query) {
         try {

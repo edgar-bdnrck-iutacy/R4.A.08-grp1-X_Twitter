@@ -7,6 +7,7 @@ const path = require('path');
 // --- IMPORTS DES SERVICES (Corrigé) ---
 const { 
     getAllPosts,
+    getFollowingFeed,
     createPost,
     toggleLike,
     toggleRepost,
@@ -47,6 +48,21 @@ router.get("/", async (req, res) => {
         res.status(200).json(posts);
     } catch (error) {
         res.status(500).json({ error: "Erreur réseau" });
+    }
+});
+
+router.get("/following", async (req, res) => {
+    try {
+        const currentUserId = req.query.userId || null;
+
+        if (!currentUserId) {
+            return res.status(400).json({ error: "userId manquant" });
+        }
+
+        const posts = await getFollowingFeed(currentUserId);
+        res.status(200).json(posts);
+    } catch (error) {
+        res.status(500).json({ error: "Erreur flux abonnements" });
     }
 });
 
