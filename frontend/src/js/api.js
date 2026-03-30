@@ -9,7 +9,6 @@ export const api = {
     async getFeed() {
         const userId = this.getCurrentUserId(); 
         try {
-            
             const response = await fetch(`${API_BASE_URL}/posts?userId=${userId}`);
             if (!response.ok) throw new Error("Erreur réseau");
             const posts = await response.json();
@@ -23,17 +22,29 @@ export const api = {
         }
     },
 
-
+    async getFollowingFeed() {
+        const userId = this.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/following?userId=${userId}`);
+            if (!response.ok) throw new Error("Erreur flux abonnements");
+            const posts = await response.json();
+            return posts.map(post => ({
+                ...post,
+                handle: `@${post.author}`
+            }));
+        } catch (error) {
+            console.error("Erreur getFollowingFeed:", error);
+            return [];
+        }
+    },
 
     async createPost(content, imageFile = null) {
         const userId = this.getCurrentUserId(); 
         
-        // On utilise FormData au lieu d'un objet JSON classique
         const formData = new FormData();
         formData.append('userId', userId);
         formData.append('content', content);
         
-        // On ajoute l'image seulement si l'utilisateur en a choisi une
         if (imageFile) {
             formData.append('tweetImage', imageFile);
         }
@@ -41,8 +52,6 @@ export const api = {
         try {
             const response = await fetch(`${API_BASE_URL}/posts`, {
                 method: 'POST',
-                // ATTENTION : On ne met SURTOUT PAS de Content-Type header ici.
-                // Le navigateur va le mettre tout seul avec le "boundary" FormData.
                 body: formData 
             });
     
@@ -57,13 +66,13 @@ export const api = {
             return null;
         }
     },
+
     // 3. Récupérer un profil utilisateur
     async getUserProfile(userId) {
         try {
             const response = await fetch(`${API_BASE_URL}/users/${userId}`);
             if (!response.ok) throw new Error("Profil introuvable");
-            const user = await response.json();
-            return user;
+            return await response.json();
         } catch (error) {
             console.error("Erreur getUserProfile:", error);
             return null;
@@ -97,6 +106,24 @@ export const api = {
         }
     },
 
+    async repostPost(postId) {
+        const userId = this.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts/${postId}/repost`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+    
+            if (!response.ok) throw new Error("Impossible de repost");
+            return await response.json();
+        } catch (error) {
+            console.error("Erreur repostPost:", error);
+            return null;
+        }
+    },
+
+
     // Fonction pour ajouter un signet
     async bookmarkPost(postId) {
         const userId = this.getCurrentUserId(); 
@@ -107,7 +134,6 @@ export const api = {
                 body: JSON.stringify({ userId })
             });
             if (!response.ok) throw new Error("Impossible d'ajouter aux signets");
-            
             return await response.json();
         } catch (error) {
             console.error("Erreur bookmarkPost:", error);
@@ -116,7 +142,7 @@ export const api = {
     },
     
     // 4. Récupérer les tendances
-    getTrends: async () => {
+    async getTrends() {
         try {
             const res = await fetch(`${API_BASE_URL}/posts/trends`);
             return res.ok ? await res.json() : [];
@@ -127,12 +153,9 @@ export const api = {
     },
 
     async getComments(postId) {
-        // On récupère l'ID de l'utilisateur actuel
         const userId = this.getCurrentUserId(); 
         try {
-            // On ajoute le userId dans l'URL pour que le back puisse checker les likes
             const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments?userId=${userId}`);
-            
             if (!response.ok) throw new Error("Erreur lors de la récupération");
             return await response.json();
         } catch (error) {
@@ -143,22 +166,17 @@ export const api = {
 
     async addComment(postId, content, imageFile = null) {
         const userId = this.getCurrentUserId();
-        
-        // On crée un FormData (obligatoire pour envoyer des fichiers)
         const formData = new FormData();
         formData.append('userId', userId);
         formData.append('content', content);
         
-        // On ajoute l'image seulement si elle existe
         if (imageFile) {
-            // "commentImage" doit être EXACTEMENT le même nom que dans ton routes/posts.js
             formData.append('commentImage', imageFile); 
         }
     
         try {
             const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
                 method: 'POST',
-                // SURTOUT PAS de headers "Content-Type" ici, le navigateur le gère seul
                 body: formData
             });
             return response.ok;
@@ -175,12 +193,7 @@ export const api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedData)
             });
-
-            if (response.ok) {
-                return await response.json();
-            } else {
-                return null;
-            }
+            return response.ok ? await response.json() : null;
         } catch (err) {
             console.error(err);
             return null;
@@ -202,20 +215,18 @@ export const api = {
             return replies.map(p => ({ ...p, handle: `@${p.author}` }));
         } catch (error) { return []; }
     },
+
     async getUserBookmarks(userId) {
         try {
             const response = await fetch(`${API_BASE_URL}/posts/user/${userId}/bookmarks`);
             if (!response.ok) throw new Error("Erreur signets");
             const posts = await response.json();
-            
-            // AJOUT ICI : On force 'isBookmarked' à true puisqu'on sait qu'on récupère la liste des signets !
             return posts.map(p => ({ ...p, handle: `@${p.author}`, isBookmarked: true }));
         } catch (error) {
             return [];
         }
     },
 
-    // Récupérer le nombre d'abonnés/abonnements
     async getFollowStats(userId) {
         try {
             const res = await fetch(`${API_BASE_URL}/users/${userId}/stats`);
@@ -229,8 +240,7 @@ export const api = {
     async getFollowers(userId) {
         try {
             const res = await fetch(`${API_BASE_URL}/users/${userId}/followers`);
-            if (!res.ok) throw new Error("Erreur récupération followers");
-            return await res.json();
+            return res.ok ? await res.json() : [];
         } catch (e) {
             console.error(e);
             return [];
@@ -240,15 +250,13 @@ export const api = {
     async getFollowing(userId) {
         try {
             const res = await fetch(`${API_BASE_URL}/users/${userId}/following`);
-            if (!res.ok) throw new Error("Erreur récupération following");
-            return await res.json();
+            return res.ok ? await res.json() : [];
         } catch (e) {
             console.error(e);
             return [];
         }
     },
 
-    // S'abonner ou se désabonner
     async toggleFollow(targetUserId) {
         const userId = this.getCurrentUserId();
         try {
@@ -257,12 +265,19 @@ export const api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId })
             });
+    
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("Erreur toggleFollow:", res.status, text);
+                return null;
+            }
+    
             return await res.json();
-        } catch (e) { 
-            return null; 
+        } catch (e) {
+            console.error("Erreur réseau toggleFollow:", e);
+            return null;
         }
     },
-
 
     async searchUsers(query) {
         try {
@@ -284,12 +299,15 @@ export const api = {
         }
     },
 
+    // --- CORRIGÉ : L'URL correspond maintenant à router.get('/hashtag/:tag') ---
     async searchPostsByHashtag(hashtag) {
         try {
-            // On enlève le # s'il est présent pour l'URL
             const cleanTag = hashtag.replace('#', '');
-            const response = await fetch(`${API_BASE_URL}/posts/search/hashtag/${encodeURIComponent(cleanTag)}`);
+            // On utilise l'URL simplifiée : /posts/hashtag/NomDuTag
+            const response = await fetch(`${API_BASE_URL}/posts/hashtag/${encodeURIComponent(cleanTag)}`);
+            
             if (!response.ok) throw new Error("Erreur recherche hashtag");
+            
             const posts = await response.json();
             return posts.map(post => ({
                 ...post,
@@ -300,6 +318,7 @@ export const api = {
             return [];
         }
     },
+
     async likeComment(commentId) {
         const userId = this.getCurrentUserId();
         const res = await fetch(`${API_BASE_URL}/posts/comments/${commentId}/like`, {

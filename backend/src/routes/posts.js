@@ -6,9 +6,18 @@ const path = require('path');
 
 // --- IMPORTS DES SERVICES (Corrigé) ---
 const { 
-    getAllPosts, createPost, toggleLike, getPostsByUserId, 
-    getTrendingHashtags, getCommentsByPostId, addComment, getPostsByHashtag,
-    incrementView, toggleCommentLike
+    getAllPosts,
+    getFollowingFeed,
+    createPost,
+    toggleLike,
+    toggleRepost,
+    getPostsByUserId,
+    getTrendingHashtags,
+    getCommentsByPostId,
+    addComment,
+    getPostsByHashtag,
+    incrementView,
+    toggleCommentLike
 } = require('../services/postsService');
 
 // --- CONFIGURATION MULTER ---
@@ -42,14 +51,34 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.get("/following", async (req, res) => {
+    try {
+        const currentUserId = req.query.userId || null;
+
+        if (!currentUserId) {
+            return res.status(400).json({ error: "userId manquant" });
+        }
+
+        const posts = await getFollowingFeed(currentUserId);
+        res.status(200).json(posts);
+    } catch (error) {
+        res.status(500).json({ error: "Erreur flux abonnements" });
+    }
+});
+
 router.get('/trends', async (req, res) => { 
     res.json(await getTrendingHashtags()); 
 });
 
-router.get('/search/hashtag/:tag', async (req, res) => {
-    res.json(await getPostsByHashtag(req.params.tag));
+router.get('/hashtag/:tag', async (req, res) => {
+    try {
+        const posts = await getPostsByHashtag(req.params.tag);
+        res.json(posts);
+    } catch (error) {
+        console.error("Erreur route hashtag:", error);
+        res.status(500).json({ error: "Erreur lors de la recherche par hashtag" });
+    }
 });
-
 // ROUTE CORRIGÉE : Like sur un commentaire
 router.post("/comments/:id/like", async (req, res) => {
     try {
@@ -122,6 +151,15 @@ router.post("/:id/like", async (req, res) => {
     }
 });
 
+router.post("/:id/repost", async (req, res) => {
+    try {
+        const result = await toggleRepost(req.params.id, req.body.userId);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: "Erreur repost" });
+    }
+});
+
 router.post('/:id/bookmark', async (req, res) => {
     try {
         const { id: postId } = req.params;
@@ -157,14 +195,18 @@ router.get('/:id/comments', async (req, res) => {
 router.post('/:id/comments', uploadComment.single('commentImage'), async (req, res) => {
     try {
         const { userId, content } = req.body;
+        // On récupère le chemin de l'image si elle existe
         const imageUrl = req.file ? `/uploads/comments/${req.file.filename}` : null;
 
         if (!userId) return res.status(400).json({ error: "User ID requis" });
         if (!content && !imageUrl) return res.status(400).json({ error: "Message ou image vide" });
 
+        // ATTENTION : postsService.addComment doit être capable de recevoir imageUrl
         await addComment(req.params.id, userId, content, imageUrl);
+        
         res.status(201).json({ success: true, imageUrl: imageUrl });
     } catch (error) {
+        console.error("Erreur lors de l'ajout du commentaire:", error);
         res.status(500).json({ error: "Erreur lors de la réponse" });
     }
 });
