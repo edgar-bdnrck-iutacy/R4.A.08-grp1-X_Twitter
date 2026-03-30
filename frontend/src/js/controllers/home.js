@@ -51,7 +51,9 @@ export async function initHome() {
 
     async function refreshFeed(mode = currentFeedMode) {
         currentFeedMode = mode;
-    
+        const titleElement = document.querySelector('.header h2');
+        if (titleElement) titleElement.textContent = "Accueil";
+
         const tweets = mode === 'following'
             ? await api.getFollowingFeed()
             : await api.getFeed();
@@ -92,9 +94,33 @@ export async function initHome() {
         });
     }
 
+    async function loadHashtagFeed(tag) {
+        const titleElement = document.querySelector('.header h2');
+        if (titleElement) {
+            titleElement.innerHTML = `
+                <span id="back-to-feed" style="cursor:pointer; margin-right:15px;">←</span>
+                Résultats pour #${tag.replace('#', '')}
+            `;
+            document.getElementById('back-to-feed').onclick = () => {
+                updateFeedTabs();
+                refreshFeed(currentFeedMode);
+            };
+        }
+
+        container.innerHTML = `<p style="padding:20px; color:gray; text-align:center;">Recherche de #${tag}...</p>`;
+        const tweets = await api.searchPostsByHashtag(tag);
+        
+        container.innerHTML = "";
+        if (tweets.length === 0) {
+            container.innerHTML = `<p style="padding:40px; color:gray; text-align:center;">Aucun post trouvé pour ce hashtag.</p>`;
+        } else {
+            renderTweets(tweets, container);
+        }
+    }
+
     updateFeedTabs();
-    await refreshFeed('for-you');
-    await renderTrends();
+    await refreshFeed(currentFeedMode);
+    await renderTrends(loadHashtagFeed);
 
     feedTabs.forEach(tab => {
         tab.onclick = async () => {
@@ -103,11 +129,17 @@ export async function initHome() {
             updateFeedTabs();
             container.innerHTML = `<p style="text-align:center; padding:40px;">Chargement...</p>`;
             await refreshFeed(mode);
-            updateFeedTabs();
         };
     });
 
     container.addEventListener('click', async (e) => {
+        // --- Hashtags cliquables dans le texte ---
+        const hashtagLink = e.target.closest('.hashtag-link');
+        if (hashtagLink) {
+            loadHashtagFeed(hashtagLink.textContent);
+            return;
+        }
+
         // Navigation Profil
         const profileTrigger = e.target.closest('.go-to-profile');
         if (profileTrigger) {
@@ -155,7 +187,7 @@ export async function initHome() {
             return;
         }
 
-        // --- NOUVEAU : Like Commentaire ---
+        // --- Like Commentaire ---
         const likeComBtn = e.target.closest('.btn-like-comment');
         if (likeComBtn) {
             const comId = likeComBtn.dataset.id;
@@ -187,14 +219,13 @@ export async function initHome() {
             return;
         }
 
-        // Trigger Upload Image Commentaire
+        // Bookmark / Soumission / Images...
         const triggerCommentImg = e.target.closest('.btn-trigger-comment-img');
         if (triggerCommentImg) {
             document.getElementById(`file-comment-${triggerCommentImg.dataset.id}`).click();
             return;
         }
 
-        // Supprimer Image Commentaire
         const removeCommentImg = e.target.closest('.btn-remove-comment-img');
         if (removeCommentImg) {
             const postId = removeCommentImg.dataset.id;
@@ -204,7 +235,6 @@ export async function initHome() {
             return;
         }
 
-        // Signets
         const bookmarkBtn = e.target.closest('.btn-bookmark');
         if (bookmarkBtn) {
             const result = await api.bookmarkPost(bookmarkBtn.dataset.id);
@@ -216,7 +246,6 @@ export async function initHome() {
             return;
         }
 
-        // Soumettre Commentaire
         const submitCommentBtn = e.target.closest('.btn-submit-comment');
         if (submitCommentBtn) {
             const postId = submitCommentBtn.dataset.id;
@@ -228,7 +257,9 @@ export async function initHome() {
                 if (ok) {
                     input.value = '';
                     delete selectedCommentFiles[postId];
-                    await refreshFeed(currentFeedMode);
+                    // On rafraîchit seulement l'UI du commentaire au lieu du feed complet
+                    const comments = await api.getComments(postId);
+                    renderCommentsUI(postId, comments, document.getElementById(`comments-${postId}`));
                 } else {
                     submitCommentBtn.disabled = false;
                 }
@@ -237,7 +268,6 @@ export async function initHome() {
         }
     });
 
-    // Preview Image Commentaire
     container.addEventListener('change', (e) => {
         if (e.target.classList.contains('comment-file-input')) {
             const postId = e.target.dataset.id;
@@ -252,6 +282,7 @@ export async function initHome() {
         }
     });
 
+    // --- VERSION UNIQUE ET COMPLÈTE DU BOUTON POSTER ---
     if (postBtn) {
         postBtn.onclick = async () => {
             const content = textarea.value.trim();
@@ -263,12 +294,20 @@ export async function initHome() {
                     selectedFile = null;
                     fileInput.value = '';
                     previewContainer.style.display = 'none';
+                    
+                    // On rafraîchit TOUT : les tweets et les tendances à droite
                     await refreshFeed(currentFeedMode);
+                    await renderTrends(loadHashtagFeed);
                 }
                 postBtn.disabled = false;
             }
         };
     }
+}
+
+function formatContent(text) {
+    if (!text) return "";
+    return text.replace(/#([a-zA-Z0-9_]+)/g, '<span class="hashtag-link" style="color: #1d9bf0; cursor: pointer;">#$1</span>');
 }
 
 function renderTweets(tweets, container) {
@@ -296,7 +335,7 @@ function renderTweets(tweets, container) {
                     <strong>${tweet.author_name}</strong> <span style="color: gray;">@${tweet.author}</span>
                 </div>
     
-                <p style="margin-bottom: 10px; word-wrap: break-word; white-space: pre-wrap;">${tweet.content}</p>
+                <p style="margin-bottom: 10px; word-wrap: break-word; white-space: pre-wrap;">${formatContent(tweet.content)}</p>
                 
                 ${tweet.image_url ? `
                     <div style="margin: 10px 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
@@ -338,7 +377,7 @@ function renderTweets(tweets, container) {
                 <div class="comments-section" id="comments-${tweet.id}" style="display: none; margin-top: 15px;"></div>
             </div>
         </div>
-    `;
+        `;
     }).join('');
 }
 
@@ -353,7 +392,6 @@ function renderCommentsUI(postId, comments, section) {
                 </div>
                 <p style="font-size: 0.9rem; margin: 2px 0;">${c.content}</p>
                 ${c.image_commentaire ? `<img src="http://localhost:3001${c.image_commentaire}" style="max-width: 100%; border-radius: 10px; margin-top: 5px; max-height: 200px; border: 1px solid var(--border-color);">` : ''}
-                
                 <div style="margin-top: 5px;">
                     <span class="btn-like-comment" data-id="${c.id}" style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size: 0.8rem; color: var(--text-muted);">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -383,7 +421,7 @@ function renderCommentsUI(postId, comments, section) {
     section.innerHTML = html;
 }
 
-async function renderTrends() {
+async function renderTrends(onTrendClick) {
     const sidebar = document.querySelector('aside') || document.querySelector('.right-sidebar');
     if (!sidebar) return;
     const trends = await api.getTrends();
@@ -392,16 +430,24 @@ async function renderTrends() {
     const container = document.createElement('div');
     container.className = 'trends-block';
     container.style.cssText = "background: #16181c; border-radius: 16px; margin-top: 15px; padding: 15px 0;";
-    
-    const items = trends.map((t, i) => `
-        <div style="padding: 10px 15px; cursor: pointer;">
+    container.innerHTML = `<h3 style="color: white; margin: 0 15px 10px; font-size: 1.1rem;">Tendances pour vous</h3>`;
+
+    trends.forEach((t, i) => {
+        const item = document.createElement('div');
+        item.className = 'trend-item';
+        item.style.cssText = "padding: 10px 15px; cursor: pointer; transition: background 0.2s;";
+        item.onmouseover = () => item.style.background = "#202327";
+        item.onmouseout = () => item.style.background = "transparent";
+        item.onclick = () => onTrendClick(t.hashtag);
+
+        item.innerHTML = `
             <div style="color: var(--text-muted); font-size: 0.75rem;">Tendance ${i + 1}</div>
             <strong style="color: white; display: block;">#${t.hashtag}</strong>
             <div style="color: var(--text-muted); font-size: 0.8rem;">${t.total} posts</div>
-        </div>
-    `).join('');
+        `;
+        container.appendChild(item);
+    });
 
-    container.innerHTML = `<h3 style="color: white; margin: 0 15px 10px; font-size: 1.1rem;">Tendances pour vous</h3>` + items;
     const old = sidebar.querySelector('.trends-block');
     if (old) old.remove();
     sidebar.appendChild(container);
